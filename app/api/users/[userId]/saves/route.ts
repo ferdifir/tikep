@@ -17,6 +17,7 @@ export async function GET(
       thumbnailPath: videos.thumbnailPath,
       duration: videos.duration,
       createdAt: videos.createdAt,
+      shareCount: videos.shareCount,
       userId: users.id,
       username: users.username,
       fullName: users.fullName,

@@ -13,6 +13,8 @@ export default function ProfilePage() {
   const { user, initData, setUser } = useTg()
   const [videos, setVideos] = useState<VideoWithUser[]>([])
   const [savedVideos, setSavedVideos] = useState<VideoWithUser[]>([])
+  const [followerCount, setFollowerCount] = useState(0)
+  const [followingCount, setFollowingCount] = useState(0)
   const [tab, setTab] = useState<Tab>("posts")
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
@@ -29,6 +31,17 @@ export default function ProfilePage() {
     fetch(`/api/users/${user.id}/saves`)
       .then((r) => r.json())
       .then((data) => setSavedVideos(data.videos ?? []))
+      .catch(() => {})
+  }, [user])
+
+  useEffect(() => {
+    if (!user) return
+    fetch(`/api/users/${user.id}/stats`)
+      .then((r) => r.json())
+      .then((data) => {
+        setFollowerCount(data.followerCount ?? 0)
+        setFollowingCount(data.followingCount ?? 0)
+      })
       .catch(() => {})
   }, [user])
 
@@ -66,6 +79,14 @@ export default function ProfilePage() {
           <p className="text-zinc-400 text-sm">{user.username ?? `@user_${user.telegramId}`}</p>
           <p className="text-white/80 text-sm mt-1">{user.bio || "No bio yet"}</p>
           <div className="flex gap-6 mt-4">
+            <div className="text-center">
+              <p className="text-lg font-bold">{followingCount}</p>
+              <p className="text-xs text-zinc-400">Following</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold">{followerCount}</p>
+              <p className="text-xs text-zinc-400">Followers</p>
+            </div>
             <div className="text-center">
               <p className="text-lg font-bold">{videos.length}</p>
               <p className="text-xs text-zinc-400">Posts</p>

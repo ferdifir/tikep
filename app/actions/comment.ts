@@ -22,4 +22,5 @@ export async function addComment(videoId: number, text: string, initData: string
   })
 
   revalidatePath("/")
+  revalidatePath(`/watch/${videoId}`)
 }

@@ -41,4 +41,5 @@ export async function toggleLike(videoId: number, initData: string) {
   }
 
   revalidatePath("/")
+  revalidatePath(`/watch/${videoId}`)
 }

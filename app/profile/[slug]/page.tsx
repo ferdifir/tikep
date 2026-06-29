@@ -1,8 +1,8 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { db } from "@/app/lib/db"
-import { users, videos } from "@/app/lib/schema"
-import { eq, desc } from "drizzle-orm"
+import { users, videos, follows } from "@/app/lib/schema"
+import { eq, desc, sql } from "drizzle-orm"
 import OwnVideoGrid from "@/app/components/own-video-grid"
 
 export const dynamic = "force-dynamic"
@@ -39,8 +39,10 @@ export default async function UserProfilePage({
     .where(eq(videos.userId, user.id))
     .orderBy(desc(videos.createdAt))
 
-  const followerCount = 0
-  const followingCount = 0
+  const [followerCount, followingCount] = await Promise.all([
+    db.$count(follows, eq(follows.followingId, user.id)),
+    db.$count(follows, eq(follows.followerId, user.id)),
+  ])
 
   return (
     <div className="min-h-dvh bg-black text-white">

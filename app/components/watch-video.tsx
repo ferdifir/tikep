@@ -36,6 +36,25 @@ export default function WatchVideo({ video }: { video: VideoWithUser }) {
   const isVid = isVideo(video.duration)
 
   useEffect(() => {
+    fetch("/api/user-state", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        initData,
+        videoIds: [video.id],
+        targetUserIds: isOwn ? [] : [video.userId],
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setLiked(data.likes?.includes(video.id) ?? false)
+        setSaved(data.saves?.includes(video.id) ?? false)
+        if (!isOwn) setFollowed(data.follows?.includes(video.userId) ?? false)
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
     if (!isVid) return
     const el = videoRef.current
     if (!el) return

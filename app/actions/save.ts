@@ -41,4 +41,5 @@ export async function toggleSave(videoId: number, initData: string) {
   }
 
   revalidatePath("/")
+  revalidatePath(`/watch/${videoId}`)
 }
