@@ -7,6 +7,10 @@ import { Toaster } from "sonner"
 export const metadata: Metadata = {
   title: "Tikep",
   description: "Short videos",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 }
 
 export default function RootLayout({
