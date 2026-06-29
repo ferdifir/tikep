@@ -114,6 +114,9 @@ export default function ProfilePage() {
           <Link href="/onboarding?edit=1" className="text-xs text-[--tg-link,#8774e1] font-semibold">
             Edit Profile
           </Link>
+          <Link href="/notifications" className="text-xs text-[--tg-link,#8774e1] font-semibold">
+            Notifications
+          </Link>
         </div>
       </div>
 

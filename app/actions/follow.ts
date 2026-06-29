@@ -5,6 +5,7 @@ import { db } from "@/app/lib/db"
 import { users, follows } from "@/app/lib/schema"
 import { validateInitData, extractUser, findUser } from "@/app/lib/tg"
 import { and, eq } from "drizzle-orm"
+import { notifyUser, getNotificationPrefs } from "@/app/lib/notify"
 
 export async function toggleFollow(username: string, initData: string) {
   const tgData = validateInitData(initData, process.env.TELEGRAM_BOT_TOKEN!)
@@ -46,6 +47,11 @@ export async function toggleFollow(username: string, initData: string) {
       )
   } else {
     await db.insert(follows).values({ followerId: current.id, followingId: target.id })
+
+    const prefs = await getNotificationPrefs(target.id)
+    if (prefs.followEnabled) {
+      await notifyUser(target.id, `👥 ${current.fullName ?? current.username ?? "Someone"} started following you`)
+    }
   }
 
   revalidatePath(`/@${username}`)

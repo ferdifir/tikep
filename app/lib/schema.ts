@@ -1,4 +1,4 @@
-import { pgTable, serial, bigint, text, integer, timestamp, primaryKey, index } from "drizzle-orm/pg-core"
+import { pgTable, serial, bigint, text, integer, timestamp, boolean, primaryKey, index } from "drizzle-orm/pg-core"
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -44,3 +44,10 @@ export const saves = pgTable("saves", {
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   videoId: integer("video_id").notNull().references(() => videos.id, { onDelete: "cascade" }),
 }, (t) => [primaryKey({ columns: [t.userId, t.videoId] }), index("saves_user_id_idx").on(t.userId), index("saves_video_id_idx").on(t.videoId)])
+
+export const notificationPreferences = pgTable("notification_preferences", {
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).primaryKey(),
+  likeEnabled: boolean("like_enabled").default(true).notNull(),
+  commentEnabled: boolean("comment_enabled").default(true).notNull(),
+  followEnabled: boolean("follow_enabled").default(true).notNull(),
+})
