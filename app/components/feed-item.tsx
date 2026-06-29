@@ -89,10 +89,13 @@ export function FeedItem({ video }: { video: VideoWithUser }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ videoId: video.id, initData }),
       })
-      if (res.ok) {
-        toast.success("Video shared to this chat!")
+      if (!res.ok) { toast.error("Share failed"); return }
+      const data = await res.json()
+      if (typeof window !== "undefined" && window.Telegram?.WebApp?.switchInlineQuery) {
+        window.Telegram.WebApp.switchInlineQuery(data.shareText, ["users", "groups", "channels"])
       } else {
-        toast.error("Share failed")
+        await navigator.clipboard.writeText(data.shareText)
+        toast.success("Link copied!")
       }
     } catch {
       toast.error("Share failed")
