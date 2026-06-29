@@ -1,7 +1,7 @@
 import { db } from "@/app/lib/db"
 import { users, videos, likes, comments, saves } from "@/app/lib/schema"
 import { eq, desc } from "drizzle-orm"
-import { FeedItem } from "../components/feed-item"
+import { FeedPage } from "../components/feed-page"
 import type { VideoWithUser } from "@/app/lib/types"
 
 export const dynamic = "force-dynamic"
@@ -43,19 +43,5 @@ export default async function Home() {
     shareCount: r.shareCount,
   }))
 
-  if (feed.length === 0) {
-    return (
-      <div className="h-[calc(100dvh-56px)] w-full flex items-center justify-center bg-black text-zinc-500">
-        <p className="text-sm">No videos yet. Upload the first one!</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="h-[calc(100dvh-56px)] w-full overflow-y-scroll snap-y snap-mandatory scrollbar-none">
-      {feed.map((item) => (
-        <FeedItem key={item.id} video={item} />
-      ))}
-    </div>
-  )
+  return <FeedPage initialFeed={feed} />
 }

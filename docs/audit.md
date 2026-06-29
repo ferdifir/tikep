@@ -117,4 +117,4 @@
 - [ ] #10 — Personalized feed (butuh data lebih banyak)
 - [ ] #11 — Follow-based feed filtering
 - [ ] #17 — Atomic shareCount
-- [ ] #8 — Username format standardization
+- [x] #8 — Username format standardization
