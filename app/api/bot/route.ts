@@ -60,6 +60,45 @@ export async function POST(request: Request) {
   const chatId = msg.chat.id
   const text = msg.text
 
+  if (text === "/start" || text === "/help") {
+    await fetch(TG_SEND, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: "🎬 *Tikep*\n\nShort videos inside Telegram.\n\nTap the button below to open the app!",
+        parse_mode: "Markdown",
+        reply_markup: {
+          inline_keyboard: [[
+            { text: "🚀 Open Tikep", web_app: { url: process.env.NEXT_PUBLIC_URL! } },
+          ]],
+        },
+      }),
+    })
+    return NextResponse.json({ ok: true })
+  }
+
+  if (text.startsWith("/start ")) {
+    const param = text.slice(7).trim()
+    if (param.startsWith("video_")) {
+      const videoId = param.replace("video_", "")
+      await fetch(TG_SEND, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: "🎬 Check out this video!",
+          reply_markup: {
+            inline_keyboard: [[
+              { text: "🎬 Open Video", web_app: { url: `${process.env.NEXT_PUBLIC_URL}/watch/${videoId}` } },
+            ]],
+          },
+        }),
+      })
+    }
+    return NextResponse.json({ ok: true })
+  }
+
   const textErr = checkText(text)
   if (textErr) {
     await fetch(TG_SEND, {

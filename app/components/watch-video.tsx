@@ -106,8 +106,7 @@ export default function WatchVideo({ video }: { video: VideoWithUser }) {
         body: JSON.stringify({ videoId: video.id, initData }),
       })
       if (res.ok) {
-        const { botUsername } = await res.json()
-        toast.success(`Sent! Open the message from @${botUsername} to watch.`)
+        toast.success("Video shared to this chat!")
       } else {
         toast.error("Share failed")
       }
