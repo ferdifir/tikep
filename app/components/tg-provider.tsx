@@ -74,6 +74,7 @@ export function TGProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
   const [tgApi, setTgApi] = useState<WebApp | null>(null)
   const [navigated, setNavigated] = useState(false)
+  const [isOutsideTelegram, setIsOutsideTelegram] = useState(false)
 
   useEffect(() => {
     setTgApi(window.Telegram?.WebApp ?? null)
@@ -105,6 +106,12 @@ export function TGProvider({ children }: { children: ReactNode }) {
     if (theme.section_header_text_color) root.style.setProperty("--tg-section-header", theme.section_header_text_color)
     if (theme.subtitle_text_color) root.style.setProperty("--tg-subtitle", theme.subtitle_text_color)
     if (theme.bottom_bar_bg_color) root.style.setProperty("--tg-bottom-bar", theme.bottom_bar_bg_color)
+
+    if (!initData) {
+      setIsOutsideTelegram(true)
+      setReady(true)
+      return
+    }
 
     fetch("/api/auth", {
       method: "POST",
@@ -139,6 +146,21 @@ export function TGProvider({ children }: { children: ReactNode }) {
 
   if (!ready) {
     return <div className="h-dvh flex items-center justify-center bg-black text-white">Loading...</div>
+  }
+
+  if (isOutsideTelegram) {
+    return (
+      <div className="h-dvh flex flex-col items-center justify-center bg-black text-white px-6 text-center">
+        <div className="w-16 h-16 rounded-full bg-[#8774e1] flex items-center justify-center mb-6">
+          <span className="text-3xl font-bold text-white">T</span>
+        </div>
+        <h1 className="text-6xl font-bold mb-2">404</h1>
+        <p className="text-lg text-zinc-400 mb-8">Halaman tidak ditemukan</p>
+        <p className="text-sm text-zinc-600 max-w-xs">
+          Halaman ini hanya bisa diakses melalui Telegram.
+        </p>
+      </div>
+    )
   }
 
   return <TgContext.Provider value={{ user, initData, tg, startParam, pendingTgUser, setUser }}>{children}</TgContext.Provider>
