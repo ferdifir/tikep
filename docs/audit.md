@@ -115,6 +115,6 @@
 
 ### Bisa ditunda / dipikirkan ulang
 - [ ] #10 — Personalized feed (butuh data lebih banyak)
-- [ ] #11 — Follow-based feed filtering
+- [x] #11 — Follow-based feed filtering
 - [ ] #17 — Atomic shareCount
 - [x] #8 — Username format standardization

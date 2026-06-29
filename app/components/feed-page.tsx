@@ -64,7 +64,7 @@ export function FeedPage({ initialFeed }: { initialFeed: VideoWithUser[] }) {
   return (
     <>
       <div className="absolute top-0 left-0 right-0 z-20 flex justify-center pt-3 pb-2 bg-gradient-to-b from-black/60 to-transparent pointer-events-none">
-        <div className="flex gap-1 rounded-lg bg-black/40 p-1 pointer-events-auto">
+        <div className="flex gap-6 pointer-events-auto">
           <TabButton active={tab === "for-you"} onClick={() => setTab("for-you")}>
             For You
           </TabButton>
@@ -97,11 +97,12 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
   return (
     <button
       onClick={onClick}
-      className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${
-        active ? "bg-white text-black" : "text-white/70 hover:text-white"
+      className={`relative text-sm font-semibold pb-1 transition-colors ${
+        active ? "text-white" : "text-white/50"
       }`}
     >
       {children}
+      {active && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-white" />}
     </button>
   )
 }
