@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tikep
+
+**Tikep** — TikTok-like short-form video mini app inside Telegram. Built with Next.js 16, Postgres + Drizzle ORM, and Telegram Mini App.
+
+## Features
+
+- **Vertical feed** — infinite scroll with IntersectionObserver lazy load
+- **Video & photo upload** — FFmpeg compression (H.264, CRF 28, ≤720p) for video, direct save for JPEG/PNG/WebP
+- **Camera recording** — tap for photo, hold for video (max 30s), front/back camera switch
+- **Interactions** — like, comment, save, follow, share
+- **Telegram auth** — initData HMAC validation, no passwords, zero third-party auth
+- **Onboarding flow** — new users must pick username/bio/avatar before using the app
+- **Profile** — edit profile, avatar upload, tabs for posts and saved videos
+- **Bot AI** — built-in Telegram bot powered by Groq (llama-3.3-70b-versatile, free), RAG from database, guard rails, bug report & feature request forwarding
+- **Telegram theme** — CSS variables from `themeParams`
+
+## Tech Stack
+
+- **Framework**: Next.js 16.2.9 (App Router, TypeScript, Tailwind CSS v4, Turbopack)
+- **Database**: PostgreSQL + Drizzle ORM (5 tables: users, videos, likes, comments, follows, saves)
+- **Auth**: Stateless initData HMAC (no cookies, no sessions)
+- **Media processing**: FFmpeg + FFprobe via fluent-ffmpeg
+- **AI**: Groq API (`llama-3.3-70b-versatile`)
+- **No backend** — Server Actions + Route Handlers only
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20+
+- PostgreSQL (local, no Docker)
+- Telegram Bot Token (from [@BotFather](https://t.me/BotFather))
+- Groq API Key (free from [console.groq.com](https://console.groq.com))
+- FFmpeg installed on system
+
+### Setup
 
 ```bash
+# Install dependencies
+npm install
+
+# Copy environment variables
+cp .env.example .env
+
+# Edit .env with your credentials:
+#   DATABASE_URL=postgres://user:pass@localhost:5432/tikep
+#   TELEGRAM_BOT_TOKEN=your_bot_token
+#   NEXT_PUBLIC_URL=https://your-ngrok-url.ngrok-free.app
+#   GROQ_API_KEY=gsk_your_key
+
+# Push database schema
+npx drizzle-kit push
+
+# Run dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Bot Webhook
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+curl -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook?url=${NEXT_PUBLIC_URL}/api/bot"
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Then open via Telegram Mini App: `https://t.me/{your_bot_name}/{app_name}`
 
-## Learn More
+## Architecture
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/
+├── actions/       # Server Actions (like, save, comment, follow, video)
+├── api/           # Route Handlers (auth, register, profile, upload, share, bot, users)
+├── components/    # Client components (feed, camera, nav, sheets, etc.)
+├── lib/           # Shared utilities (db, schema, tg, groq, guards, rag, notify)
+├── (main)/        # App group with bottom nav (Home, Upload, Profile)
+├── onboarding/    # Full-screen onboarding (no bottom nav)
+├── profile/[slug] # User profile pages
+└── watch/[id]     # Video watch page
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Deploy to any VPS:
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Install PostgreSQL, clone repo, build, run with PM2
+2. Set `NEXT_PUBLIC_URL` to production domain
+3. BotFather `/setappname` for deep links
+4. Set Telegram bot webhook
