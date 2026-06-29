@@ -65,11 +65,11 @@ export function FeedPage({ initialFeed }: { initialFeed: VideoWithUser[] }) {
     <>
       <div className="absolute top-0 left-0 right-0 z-20 flex justify-center pt-3 pb-2 bg-gradient-to-b from-black/60 to-transparent pointer-events-none">
         <div className="flex gap-6 pointer-events-auto">
-          <TabButton active={tab === "for-you"} onClick={() => setTab("for-you")}>
-            For You
-          </TabButton>
           <TabButton active={tab === "following"} onClick={() => setTab("following")}>
             Following
+          </TabButton>
+          <TabButton active={tab === "for-you"} onClick={() => setTab("for-you")}>
+            For You
           </TabButton>
         </div>
       </div>
