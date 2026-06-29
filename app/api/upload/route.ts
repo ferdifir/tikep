@@ -50,6 +50,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Max 100MB" }, { status: 400 })
   }
 
+  if (caption.length > 200) {
+    return NextResponse.json({ error: "Caption max 200 characters" }, { status: 400 })
+  }
+
   const ext = path.extname(file.name) || (isVideo ? ".mp4" : ".jpg")
   const basename = `${user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const dir = path.join(process.cwd(), "public", "uploads", String(user.id))

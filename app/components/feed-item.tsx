@@ -310,7 +310,7 @@ export function FeedItem({ video }: { video: VideoWithUser }) {
           )}
         </div>
         {video.caption ? (
-          <p className="text-white text-sm leading-tight">{video.caption}</p>
+          <p className="text-white text-sm leading-tight line-clamp-2">{video.caption}</p>
         ) : null}
       </div>
 
