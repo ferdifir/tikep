@@ -15,6 +15,13 @@
       "when": 1782683067659,
       "tag": "0001_gigantic_moon_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782732566704,
+      "tag": "0002_confused_lucky_pierre",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import { pgTable, serial, bigint, text, integer, timestamp, primaryKey } from "drizzle-orm/pg-core"
+import { pgTable, serial, bigint, text, integer, timestamp, primaryKey, index } from "drizzle-orm/pg-core"
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -20,12 +20,12 @@ export const videos = pgTable("videos", {
   duration: integer("duration").default(0),
   shareCount: integer("share_count").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-})
+}, (t) => [index("videos_user_id_idx").on(t.userId)])
 
 export const likes = pgTable("likes", {
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   videoId: integer("video_id").notNull().references(() => videos.id, { onDelete: "cascade" }),
-}, (t) => [primaryKey({ columns: [t.userId, t.videoId] })])
+}, (t) => [primaryKey({ columns: [t.userId, t.videoId] }), index("likes_video_id_idx").on(t.videoId), index("likes_user_id_idx").on(t.userId)])
 
 export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
@@ -33,7 +33,7 @@ export const comments = pgTable("comments", {
   videoId: integer("video_id").notNull().references(() => videos.id, { onDelete: "cascade" }),
   text: text("text").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
-})
+}, (t) => [index("comments_video_id_idx").on(t.videoId)])
 
 export const follows = pgTable("follows", {
   followerId: integer("follower_id").notNull().references(() => users.id, { onDelete: "cascade" }),
@@ -43,4 +43,4 @@ export const follows = pgTable("follows", {
 export const saves = pgTable("saves", {
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   videoId: integer("video_id").notNull().references(() => videos.id, { onDelete: "cascade" }),
-}, (t) => [primaryKey({ columns: [t.userId, t.videoId] })])
+}, (t) => [primaryKey({ columns: [t.userId, t.videoId] }), index("saves_user_id_idx").on(t.userId), index("saves_video_id_idx").on(t.videoId)])
