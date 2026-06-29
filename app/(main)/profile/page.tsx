@@ -45,6 +45,32 @@ export default function ProfilePage() {
       .catch(() => {})
   }, [user])
 
+  const [shareLoading, setShareLoading] = useState(false)
+
+  async function handleShareProfile() {
+    if (!initData) return
+    setShareLoading(true)
+    try {
+      const res = await fetch("/api/share/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData }),
+      })
+      if (!res.ok) { toast.error("Share failed"); return }
+      const data = await res.json()
+      if (typeof window !== "undefined" && window.Telegram?.WebApp?.switchInlineQuery) {
+        window.Telegram.WebApp.switchInlineQuery(data.shareText, ["users", "groups", "channels"])
+      } else {
+        await navigator.clipboard.writeText(data.shareText)
+        toast.success("Link copied!")
+      }
+    } catch {
+      toast.error("Share failed")
+    } finally {
+      setShareLoading(false)
+    }
+  }
+
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !initData) return
@@ -98,6 +124,17 @@ export default function ProfilePage() {
           </div>
         </div>
         <div className="flex flex-col items-center gap-2">
+          <button
+            onClick={handleShareProfile}
+            disabled={shareLoading}
+            className="p-1 text-white/70 hover:text-white transition-colors"
+          >
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+              <polyline points="16 6 12 2 8 6" />
+              <line x1="12" y1="2" x2="12" y2="15" />
+            </svg>
+          </button>
           <button
             onClick={() => avatarInputRef.current?.click()}
             className="w-24 h-24 shrink-0 rounded-full overflow-hidden border-4 border-black"

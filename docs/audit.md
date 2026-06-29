@@ -48,10 +48,10 @@
 
 ## 🔵 Missing Features for MVP
 
-10. **Feed tidak personal**
-    - Semua user melihat video yang sama, diurutkan chronologically (`ORDER BY createdAt DESC`).
-    - Tidak ada filtering berdasarkan following.
-    - Untuk MVP awal ini OK, tapi fundamental untuk short-video app.
+10. **Feed "For You" sudah personal (scoring-based)**
+    - Tab "Following" memfilter berdasarkan user yang di-follow + di-sorting dengan personal score.
+    - Tab "For You" menggunakan algoritma scoring: follow creator (+50), like creator's videos (+25), save creator's videos (+25), comment on creator's videos (+20), popularity (capped +10).
+    - Infinite scroll dengan compound cursor (score|createdAt) untuk menjaga urutan personalisasi.
 
 11. **Follow feature tidak memiliki efek apapun**
     - User bisa follow/unfollow, tapi:
@@ -114,7 +114,7 @@
 - [ ] #16 — Indexes on FK columns
 
 ### Bisa ditunda / dipikirkan ulang
-- [ ] #10 — Personalized feed (butuh data lebih banyak)
+- [x] #10 — Personalized feed (scoring-based algorithm)
 - [x] #11 — Follow-based feed filtering
 - [ ] #17 — Atomic shareCount
 - [x] #8 — Username format standardization

@@ -6,6 +6,8 @@ import type { VideoWithUser } from "@/app/lib/types"
 
 export const dynamic = "force-dynamic"
 
+const LIMIT = 5
+
 export default async function Home() {
   const rows = await db
     .select({
@@ -26,6 +28,10 @@ export default async function Home() {
     .from(videos)
     .innerJoin(users, eq(videos.userId, users.id))
     .orderBy(desc(videos.createdAt))
+    .limit(LIMIT + 1)
+
+  const hasMore = rows.length > LIMIT
+  if (hasMore) rows.pop()
 
   const feed: VideoWithUser[] = rows.map((r) => ({
     id: r.id,
@@ -43,5 +49,9 @@ export default async function Home() {
     shareCount: r.shareCount,
   }))
 
-  return <FeedPage initialFeed={feed} />
+  const nextCursor = feed.length > 0
+    ? Buffer.from(`0|${new Date(feed[feed.length - 1].createdAt!).toISOString()}`).toString("base64url")
+    : null
+
+  return <FeedPage initialFeed={feed} initialCursor={nextCursor} initialHasMore={hasMore} />
 }
