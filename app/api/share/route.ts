@@ -35,11 +35,11 @@ export async function POST(request: Request) {
   }
 
   const watchUrl = `${process.env.NEXT_PUBLIC_URL}/watch/${video.id}`
-  const username = video.username ?? `@user_${video.userId}`
+  const displayName = video.username ? `@${video.username}` : `@user_${video.userId}`
   const caption = video.caption ?? ""
 
   const shareText = [
-    `🎬 ${username}`,
+    `🎬 ${displayName}`,
     caption ? `\n${caption}` : "",
     `\n\n🔗 ${watchUrl}`,
   ].join("")

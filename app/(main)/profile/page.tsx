@@ -76,7 +76,7 @@ export default function ProfilePage() {
       <div className="px-4 pb-6 flex justify-between items-start gap-4 pt-4">
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-bold">{user.fullName ?? "User"}</h1>
-          <p className="text-zinc-400 text-sm">{user.username ?? `@user_${user.telegramId}`}</p>
+          <p className="text-zinc-400 text-sm">@{user.username ?? `user_${user.telegramId}`}</p>
           <p className="text-white/80 text-sm mt-1">{user.bio || "No bio yet"}</p>
           <div className="flex gap-6 mt-4">
             <div className="text-center">

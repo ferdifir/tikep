@@ -25,7 +25,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 })
   }
 
-  const usernameClean = username.startsWith("@") ? username : `@${username}`
+  const usernameClean = username.startsWith("@") ? username.slice(1) : username
 
   const taken = await db
     .select()

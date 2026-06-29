@@ -25,7 +25,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Already registered" }, { status: 400 })
   }
 
-  const usernameClean = username.startsWith("@") ? username : `@${username}`
+  const usernameClean = username.startsWith("@") ? username.slice(1) : username
 
   const taken = await db
     .select()

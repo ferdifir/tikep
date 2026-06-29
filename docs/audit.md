@@ -110,7 +110,7 @@
 - [ ] #9 — Batasi panjang caption
 - [ ] #13 — Loading states, error boundary
 - [ ] #14 — Bot handle `/start`
-- [ ] #15 — Perbaiki share behavior
+- [x] #15 — Perbaiki share behavior
 - [ ] #16 — Indexes on FK columns
 
 ### Bisa ditunda / dipikirkan ulang

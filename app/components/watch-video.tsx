@@ -147,8 +147,8 @@ export default function WatchVideo({ video }: { video: VideoWithUser }) {
     setMuted(videoRef.current.muted)
   }
 
-  const username = video.username ?? `@user_${video.userId}`
-  const profileHref = `/@${username.replace("@", "")}`
+  const displayName = video.username ? `@${video.username}` : `@user_${video.userId}`
+  const profileHref = `/@${video.username ?? `user_${video.userId}`}`
 
   return (
     <div className="relative h-dvh w-full bg-black overflow-hidden">
@@ -211,7 +211,7 @@ export default function WatchVideo({ video }: { video: VideoWithUser }) {
             <img src={video.avatarUrl} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-white/20 text-white font-bold text-sm">
-              {username[1]?.toUpperCase() ?? "?"}
+              {displayName[1]?.toUpperCase() ?? "?"}
             </div>
           )}
         </Link>
@@ -285,7 +285,7 @@ export default function WatchVideo({ video }: { video: VideoWithUser }) {
       <div className="absolute left-4 bottom-4 right-20 z-10">
         <div className="flex items-center gap-2 mb-2">
           <Link href={profileHref} className="text-white font-bold text-sm">
-            {username}
+            {displayName}
           </Link>
           {!isOwn && !followed ? (
             <button
