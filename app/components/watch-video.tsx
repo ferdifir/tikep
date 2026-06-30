@@ -10,6 +10,8 @@ import { toggleSave } from "@/app/actions/save"
 import { toggleFollow } from "@/app/actions/follow"
 import { useTg } from "./tg-provider"
 import { toast } from "sonner"
+import { PremiumBadge } from "./premium-badge"
+import { SubscriptionGate } from "./subscription-gate"
 
 function isVideo(duration: number | null): boolean {
   return (duration ?? 0) > 0
@@ -32,6 +34,8 @@ export default function WatchVideo({ video }: { video: VideoWithUser }) {
   const [followed, setFollowed] = useState(false)
   const [showLabel, setShowLabel] = useState(false)
   const [fading, setFading] = useState(false)
+  const [subscribed, setSubscribed] = useState(false)
+  const [subscriptionPrice, setSubscriptionPrice] = useState<number | null>(null)
   const isOwn = user?.id === video.userId
   const isVid = isVideo(video.duration)
 
@@ -52,6 +56,16 @@ export default function WatchVideo({ video }: { video: VideoWithUser }) {
         if (!isOwn) setFollowed(data.follows?.includes(video.userId) ?? false)
       })
       .catch(() => {})
+
+    if (video.isPremium && !isOwn && initData) {
+      fetch(`/api/subscriptions/${video.userId}?initData=${encodeURIComponent(initData)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          setSubscribed(data.subscribed ?? false)
+          setSubscriptionPrice(data.subscriptionPrice ?? null)
+        })
+        .catch(() => {})
+    }
   }, [])
 
   useEffect(() => {
@@ -192,6 +206,19 @@ export default function WatchVideo({ video }: { video: VideoWithUser }) {
 
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
 
+      {video.isPremium && !isOwn && !subscribed && (
+        <SubscriptionGate
+          creatorId={video.userId}
+          creatorUsername={video.username ?? `user_${video.userId}`}
+          price={subscriptionPrice}
+          isSubscribed={subscribed}
+          onSubscribeToggle={() => {
+            setSubscribed(true)
+            setSubscriptionPrice(null)
+          }}
+        />
+      )}
+
       <button
         onClick={() => router.back()}
         className="absolute top-4 left-4 z-20 w-9 h-9 rounded-full bg-black/40 flex items-center justify-center"
@@ -284,8 +311,9 @@ export default function WatchVideo({ video }: { video: VideoWithUser }) {
 
       <div className="absolute left-4 bottom-4 right-20 z-10">
         <div className="flex items-center gap-2 mb-2">
-          <Link href={profileHref} className="text-white font-bold text-sm">
+          <Link href={profileHref} className="text-white font-bold text-sm flex items-center gap-1.5">
             {displayName}
+            {video.isPremium && <PremiumBadge />}
           </Link>
           {!isOwn && !followed ? (
             <button

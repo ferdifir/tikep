@@ -4,6 +4,7 @@ import { db } from "@/app/lib/db"
 import { users, videos, follows } from "@/app/lib/schema"
 import { eq, desc, sql } from "drizzle-orm"
 import OwnVideoGrid from "@/app/components/own-video-grid"
+import { ProfileSubscription } from "@/app/components/profile-subscription"
 
 export const dynamic = "force-dynamic"
 
@@ -84,6 +85,7 @@ export default async function UserProfilePage({
             </div>
           )}
         </div>
+        <ProfileSubscription creatorId={user.id} creatorUsername={user.username} />
       </div>
 
       <div className="px-1 border-t border-zinc-800 pt-1">

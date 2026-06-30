@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     const file = formData.get("file") as File | null
     const caption = (formData.get("caption") as string) ?? ""
     const initData = formData.get("initData") as string
+    const isPremium = formData.get("isPremium") === "1"
 
     if (!file || !initData) {
       return NextResponse.json({ error: "Missing file or initData" }, { status: 400 })
@@ -130,6 +131,7 @@ export async function POST(request: Request) {
       filePath: `/uploads/${user.id}/${finalFilename}`,
       thumbnailPath,
       duration: Math.round(duration),
+      isPremium,
     })
     .returning()
 

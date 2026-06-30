@@ -25,6 +25,7 @@ declare global {
           impactOccurred: (style: string) => void
         }
         shareMessage: (msgId: string) => void
+        openInvoice: (url: string, callback: (status: string) => void) => void
         switchInlineQuery: (query: string, chooseChatTypes?: ("users" | "bots" | "groups" | "channels")[]) => void
         CloudStorage: {
           getItem: (key: string, cb: (err: unknown, val: string) => void) => void

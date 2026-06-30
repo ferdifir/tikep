@@ -6,11 +6,14 @@ import { useTg } from "@/app/components/tg-provider"
 import { deleteVideo } from "@/app/actions/video"
 import { toast } from "sonner"
 
+import { PremiumBadge } from "./premium-badge"
+
 interface GridVideo {
   id: number
   filePath: string
   thumbnailPath?: string | null
   duration?: number | null
+  isPremium?: boolean
 }
 
 interface Props {
@@ -67,6 +70,11 @@ export default function OwnVideoGrid({ videos, profileUserId, showDelete = true 
               <img src={v.filePath} alt="" className="h-full w-full object-cover" />
             )}
           </Link>
+          {v.isPremium && (
+            <div className="absolute top-1 left-1 z-20">
+              <PremiumBadge />
+            </div>
+          )}
           {isOwn && (
             <button
               onClick={() => handleDelete(v.id)}

@@ -24,6 +24,7 @@ export default async function WatchPage({ params }: { params: Promise<{ id: stri
       commentCount: db.$count(comments, eq(comments.videoId, Number(id))),
       saveCount: db.$count(saves, eq(saves.videoId, Number(id))),
       shareCount: videos.shareCount,
+      isPremium: videos.isPremium,
     })
     .from(videos)
     .innerJoin(users, eq(videos.userId, users.id))

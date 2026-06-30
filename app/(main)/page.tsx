@@ -24,9 +24,11 @@ export default async function Home() {
       commentCount: db.$count(comments, eq(comments.videoId, videos.id)),
       saveCount: db.$count(saves, eq(saves.videoId, videos.id)),
       shareCount: videos.shareCount,
+      isPremium: videos.isPremium,
     })
     .from(videos)
     .innerJoin(users, eq(videos.userId, users.id))
+    .where(eq(videos.isPremium, false))
     .orderBy(desc(videos.createdAt))
     .limit(LIMIT + 1)
 
@@ -47,6 +49,7 @@ export default async function Home() {
     commentCount: r.commentCount,
     saveCount: r.saveCount,
     shareCount: r.shareCount,
+    isPremium: r.isPremium,
   }))
 
   const nextCursor = feed.length > 0

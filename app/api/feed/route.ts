@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 import { db } from "@/app/lib/db"
-import { users, videos, likes, comments, saves, follows } from "@/app/lib/schema"
-import { eq, desc, inArray, lt, sql } from "drizzle-orm"
+import { users, videos, likes, comments, saves, follows, subscriptions } from "@/app/lib/schema"
+import { eq, desc, inArray, lt, sql, and } from "drizzle-orm"
 import { validateInitData, extractUser, findUser } from "@/app/lib/tg"
 import type { VideoWithUser } from "@/app/lib/types"
 
@@ -40,6 +40,7 @@ function mapRow(r: Record<string, unknown>): VideoWithUser {
     commentCount: Number(r.comment_count),
     saveCount: Number(r.save_count),
     shareCount: Number(r.share_count),
+    isPremium: r.is_premium === true || r.is_premium === "true",
   }
 }
 
@@ -82,7 +83,7 @@ async function queryFeedPersonalized(
   const result = await db.execute(sql`
     WITH scored AS (
       SELECT
-        v.id, v.caption, v.file_path, v.duration, v.created_at, v.share_count,
+        v.id, v.caption, v.file_path, v.duration, v.created_at, v.share_count, v.is_premium,
         u.id AS user_id, u.username, u.full_name, u.avatar_url,
         (SELECT COUNT(*) FROM likes WHERE likes.video_id = v.id)::int AS like_count,
         (SELECT COUNT(*) FROM comments WHERE comments.video_id = v.id)::int AS comment_count,
@@ -111,6 +112,31 @@ async function queryFeedPersonalized(
   return { feed, hasMore, nextCursor }
 }
 
+async function filterPremiumFeed(
+  feed: VideoWithUser[],
+  currentUserId?: number,
+): Promise<VideoWithUser[]> {
+  const premiumIds = feed.filter((v) => v.isPremium).map((v) => v.userId)
+  if (premiumIds.length === 0 || !currentUserId) {
+    return feed.filter((v) => !v.isPremium)
+  }
+
+  const activeSubs = await db
+    .select()
+    .from(subscriptions)
+    .where(
+      and(
+        eq(subscriptions.subscriberId, currentUserId),
+        inArray(subscriptions.creatorId, premiumIds),
+        eq(subscriptions.active, true),
+        sql`${subscriptions.endDate} > now()`,
+      ),
+    )
+
+  const subbedCreatorIds = new Set(activeSubs.map((s) => s.creatorId))
+  return feed.filter((v) => !v.isPremium || subbedCreatorIds.has(v.userId))
+}
+
 async function queryFeedChronological(
   onlyFollowed?: boolean,
   currentUserId?: number,
@@ -131,6 +157,7 @@ async function queryFeedChronological(
     commentCount: db.$count(comments, eq(comments.videoId, videos.id)),
     saveCount: db.$count(saves, eq(saves.videoId, videos.id)),
     shareCount: videos.shareCount,
+    isPremium: videos.isPremium,
   }
 
   let q = db.select(baseSelect).from(videos).innerJoin(users, eq(videos.userId, users.id))
@@ -177,6 +204,7 @@ async function queryFeedChronological(
     commentCount: r.commentCount,
     saveCount: r.saveCount,
     shareCount: r.shareCount,
+    isPremium: r.isPremium,
   }))
 
   const nextCursor =
@@ -192,29 +220,7 @@ export async function GET(request: Request) {
   const cursor = searchParams.get("cursor") || undefined
   const limit = Math.min(Number(searchParams.get("limit")) || DEFAULT_LIMIT, 20)
 
-  if (tab === "following") {
-    if (!initData) {
-      return NextResponse.json({ feed: [], error: "Authentication required" }, { status: 401 })
-    }
-
-    const tgData = validateInitData(initData, process.env.TELEGRAM_BOT_TOKEN!)
-    if (!tgData) {
-      return NextResponse.json({ feed: [], error: "Unauthorized" }, { status: 401 })
-    }
-
-    const tgUser = extractUser(tgData)
-    if (!tgUser) {
-      return NextResponse.json({ feed: [], error: "Unauthorized" }, { status: 401 })
-    }
-
-    const user = await findUser(tgUser)
-    if (!user) {
-      return NextResponse.json({ feed: [], error: "User not found" }, { status: 404 })
-    }
-
-    const result = await queryFeedPersonalized(user.id, cursor, limit)
-    return NextResponse.json(result)
-  }
+  let currentUserId: number | undefined
 
   if (initData) {
     const tgData = validateInitData(initData, process.env.TELEGRAM_BOT_TOKEN!)
@@ -222,14 +228,28 @@ export async function GET(request: Request) {
       const tgUser = extractUser(tgData)
       if (tgUser) {
         const user = await findUser(tgUser)
-        if (user) {
-          const result = await queryFeedPersonalized(user.id, cursor, limit)
-          return NextResponse.json(result)
-        }
+        if (user) currentUserId = user.id
       }
     }
   }
 
+  if (tab === "following") {
+    if (!currentUserId) {
+      return NextResponse.json({ feed: [], error: "Authentication required" }, { status: 401 })
+    }
+
+    const result = await queryFeedPersonalized(currentUserId, cursor, limit)
+    result.feed = await filterPremiumFeed(result.feed, currentUserId)
+    return NextResponse.json(result)
+  }
+
+  if (currentUserId) {
+    const result = await queryFeedPersonalized(currentUserId, cursor, limit)
+    result.feed = await filterPremiumFeed(result.feed, currentUserId)
+    return NextResponse.json(result)
+  }
+
   const result = await queryFeedChronological(false, undefined, cursor, limit)
+  result.feed = await filterPremiumFeed(result.feed, currentUserId)
   return NextResponse.json(result)
 }

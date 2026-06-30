@@ -9,6 +9,7 @@ import { toggleSave } from "@/app/actions/save"
 import { toggleFollow } from "@/app/actions/follow"
 import { useTg } from "./tg-provider"
 import { toast } from "sonner"
+import { PremiumBadge } from "./premium-badge"
 
 function isVideo(duration: number | null): boolean {
   return (duration ?? 0) > 0
@@ -292,8 +293,9 @@ export function FeedItem({ video }: { video: VideoWithUser }) {
 
       <div className="absolute left-4 bottom-4 right-20 z-10">
         <div className="flex items-center gap-2 mb-2">
-          <Link href={profileHref} className="text-white font-bold text-sm">
+          <Link href={profileHref} className="text-white font-bold text-sm flex items-center gap-1.5">
             {displayName}
+            {video.isPremium && <PremiumBadge />}
           </Link>
           {!isOwn && !followed ? (
             <button

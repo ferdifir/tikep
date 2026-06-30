@@ -15,6 +15,7 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState<string | null>(null)
   const [isImage, setIsImage] = useState(false)
+  const [isPremium, setIsPremium] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   function handleFile(f: File) {
@@ -46,6 +47,7 @@ export default function UploadPage() {
     fd.append("file", file)
     fd.append("caption", caption)
     fd.append("initData", initData)
+    fd.append("isPremium", isPremium ? "1" : "0")
 
     const res = await fetch("/api/upload", { method: "POST", body: fd })
     if (res.ok) {
@@ -111,21 +113,32 @@ export default function UploadPage() {
           </svg>
         </button>
 
-        <div className="absolute bottom-6 left-4 right-4 z-10 flex items-end gap-3">
-          <input
-            type="text"
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
-            placeholder="Add caption..."
-            className="flex-1 bg-white/10 backdrop-blur-md text-white text-sm rounded-xl px-4 py-3 outline-none placeholder:text-white/50 border border-white/10"
-          />
-          <button
-            onClick={submit}
-            disabled={uploading}
-            className="shrink-0 px-6 py-3 rounded-xl bg-[--tg-button,#8774e1] text-white font-semibold text-sm disabled:opacity-40 transition-opacity"
-          >
-            {uploading ? "Posting..." : "Post"}
-          </button>
+        <div className="absolute bottom-6 left-4 right-4 z-10 flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder="Add caption..."
+              className="flex-1 bg-white/10 backdrop-blur-md text-white text-sm rounded-xl px-4 py-3 outline-none placeholder:text-white/50 border border-white/10"
+            />
+            <button
+              onClick={submit}
+              disabled={uploading}
+              className="shrink-0 px-6 py-3 rounded-xl bg-[--tg-button,#8774e1] text-white font-semibold text-sm disabled:opacity-40 transition-opacity"
+            >
+              {uploading ? "Posting..." : "Post"}
+            </button>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-zinc-400">
+            <input
+              type="checkbox"
+              checked={isPremium}
+              onChange={(e) => setIsPremium(e.target.checked)}
+              className="accent-amber-500"
+            />
+            Konten Premium (hanya subscriber)
+          </label>
         </div>
       </div>
     </div>

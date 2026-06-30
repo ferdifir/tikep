@@ -8,6 +8,9 @@ export const users = pgTable("users", {
   fullName: text("full_name"),
   bio: text("bio").default(""),
   avatarUrl: text("avatar_url"),
+  subscriberCount: integer("subscriber_count").default(0).notNull(),
+  subscriptionPrice: integer("subscription_price"),
+  subscriptionActive: boolean("subscription_active").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 })
 
@@ -19,6 +22,7 @@ export const videos = pgTable("videos", {
   thumbnailPath: text("thumbnail_path"),
   duration: integer("duration").default(0),
   shareCount: integer("share_count").default(0).notNull(),
+  isPremium: boolean("is_premium").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 }, (t) => [index("videos_user_id_idx").on(t.userId)])
 
@@ -44,6 +48,18 @@ export const saves = pgTable("saves", {
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   videoId: integer("video_id").notNull().references(() => videos.id, { onDelete: "cascade" }),
 }, (t) => [primaryKey({ columns: [t.userId, t.videoId] }), index("saves_user_id_idx").on(t.userId), index("saves_video_id_idx").on(t.videoId)])
+
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  subscriberId: integer("subscriber_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  creatorId: integer("creator_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  telegramPaymentChargeId: text("telegram_payment_charge_id").unique().notNull(),
+  startDate: timestamp("start_date").defaultNow().notNull(),
+  endDate: timestamp("end_date").notNull(),
+  active: boolean("active").default(true).notNull(),
+  autoRenew: boolean("auto_renew").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (t) => [index("subscriptions_creator_idx").on(t.creatorId), index("subscriptions_subscriber_idx").on(t.subscriberId), index("subscriptions_subscriber_creator_idx").on(t.subscriberId, t.creatorId)])
 
 export const notificationPreferences = pgTable("notification_preferences", {
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }).primaryKey(),

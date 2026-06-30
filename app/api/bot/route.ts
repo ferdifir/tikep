@@ -3,6 +3,9 @@ import { groqChat } from "@/app/lib/groq"
 import { checkText, checkRateLimit, sanitizeOutput } from "@/app/lib/bot-guard"
 import { buildRagContext } from "@/app/lib/bot-rag"
 import { notifyDev, notifyError } from "@/app/lib/notify"
+import { db } from "@/app/lib/db"
+import { users, subscriptions } from "@/app/lib/schema"
+import { eq, and, sql } from "drizzle-orm"
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 const TG_SEND = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`
@@ -49,9 +52,105 @@ function appendHistory(chatId: number, exchange: Exchange) {
   conversations.set(chatId, h)
 }
 
+function sendBotMessage(chatId: number, text: string) {
+  return fetch(TG_SEND, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text, disable_web_page_preview: true }),
+  })
+}
+
 export async function POST(request: Request) {
   const update = await request.json()
+
+  if (update.pre_checkout_query) {
+    const pq = update.pre_checkout_query
+    try {
+      const payload = JSON.parse(pq.invoice_payload)
+      const subscriberId = payload.subscriberId
+      const creatorId = payload.creatorId
+      if (typeof subscriberId !== "number" || typeof creatorId !== "number") {
+        throw new Error("Invalid payload")
+      }
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerPreCheckoutQuery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pre_checkout_query_id: pq.id, ok: true }),
+      })
+    } catch {
+      await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/answerPreCheckoutQuery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pre_checkout_query_id: pq.id, ok: false, error_message: "Invalid payment" }),
+      })
+    }
+    return NextResponse.json({ ok: true })
+  }
+
   const msg = update.message
+
+  if (msg?.successful_payment) {
+    try {
+      const payload = JSON.parse(msg.successful_payment.invoice_payload)
+      const subscriberId = payload.subscriberId
+      const creatorId = payload.creatorId
+      const chargeId = msg.successful_payment.telegram_payment_charge_id
+
+      const now = new Date()
+      const endDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+
+      const existing = await db
+        .select()
+        .from(subscriptions)
+        .where(
+          and(eq(subscriptions.subscriberId, subscriberId), eq(subscriptions.creatorId, creatorId)),
+        )
+        .then((r) => r[0])
+
+      if (existing) {
+        await db
+          .update(subscriptions)
+          .set({
+            active: true,
+            autoRenew: true,
+            endDate,
+            telegramPaymentChargeId: chargeId,
+          })
+          .where(eq(subscriptions.id, existing.id))
+      } else {
+        await db.insert(subscriptions).values({
+          subscriberId,
+          creatorId,
+          telegramPaymentChargeId: chargeId,
+          startDate: now,
+          endDate,
+        })
+      }
+
+      const [creator, subscriber] = await Promise.all([
+        db.select().from(users).where(eq(users.id, creatorId)).then((r) => r[0]),
+        db.select().from(users).where(eq(users.id, subscriberId)).then((r) => r[0]),
+      ])
+
+      await db
+        .update(users)
+        .set({
+          subscriberCount: sql`${users.subscriberCount} + 1`,
+        })
+        .where(eq(users.id, creatorId))
+
+      if (subscriber) {
+        await sendBotMessage(subscriber.telegramId, `You are now subscribed to @${creator?.username ?? creator?.fullName ?? "Creator"}! 🎉`)
+      }
+      if (creator) {
+        await sendBotMessage(creator.telegramId, `🌟 @${subscriber?.username ?? subscriber?.fullName ?? "Someone"} subscribed to you!`)
+      }
+    } catch (e) {
+      await notifyError("Subscription payment callback error", e)
+    }
+    return NextResponse.json({ ok: true })
+  }
+
   if (!msg?.text || !msg.from) {
     return NextResponse.json({ ok: true })
   }

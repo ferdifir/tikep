@@ -154,6 +154,9 @@ export default function ProfilePage() {
           <Link href="/notifications" className="text-xs text-[--tg-link,#8774e1] font-semibold">
             Notifications
           </Link>
+          <Link href="/dashboard" className="text-xs text-[--tg-link,#8774e1] font-semibold">
+            Dashboard
+          </Link>
         </div>
       </div>
 
