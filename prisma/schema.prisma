@@ -152,21 +152,29 @@ model ReviewCode {
 }
 
 model ServiceInquiry {
-  id                  String       @id @default(cuid())
-  serviceId           String
-  service             Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  providerId          String
-  provider            Provider     @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  customerUserId      String
-  customerUser        User         @relation("InquiryCustomer", fields: [customerUserId], references: [id], onDelete: Cascade)
-  status              String       @default("REQUESTED")
-  message             String?
-  providerMessageId   Int?
-  customerNotifiedAt  DateTime?
-  providerRespondedAt DateTime?
-  reviewCodes         ReviewCode[]
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
+  id                         String       @id @default(cuid())
+  serviceId                  String
+  service                    Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  providerId                 String
+  provider                   Provider     @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  customerUserId             String
+  customerUser               User         @relation("InquiryCustomer", fields: [customerUserId], references: [id], onDelete: Cascade)
+  status                     String       @default("REQUESTED")
+  message                    String?
+  providerMessageId          Int?
+  providerNotificationStatus String?
+  providerNotificationError  String?
+  providerMessageEditedAt    DateTime?
+  customerNotifiedAt         DateTime?
+  customerNotificationStatus String?
+  customerNotificationError  String?
+  providerRespondedAt        DateTime?
+  reviewInvitedAt            DateTime?
+  reviewInviteStatus         String?
+  reviewInviteError          String?
+  reviewCodes                ReviewCode[]
+  createdAt                  DateTime     @default(now())
+  updatedAt                  DateTime     @updatedAt
 
   @@unique([serviceId, customerUserId])
 }

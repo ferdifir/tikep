@@ -28,7 +28,7 @@ export async function sendReviewInviteMessage(input: {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
   if (!botToken) {
-    return { status: "not_configured" as const };
+    return { status: "not_configured" as const, error: "TELEGRAM_BOT_TOKEN belum dikonfigurasi." };
   }
 
   const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -55,8 +55,8 @@ export async function sendReviewInviteMessage(input: {
   });
 
   if (!response.ok) {
-    return { status: "failed" as const };
+    return { status: "failed" as const, error: `Telegram sendMessage gagal: ${response.status}` };
   }
 
-  return { status: "sent" as const };
+  return { status: "sent" as const, error: null };
 }

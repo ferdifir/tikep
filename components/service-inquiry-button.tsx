@@ -27,7 +27,13 @@ export function ServiceInquiryButton({ service, compact = false }: { service: Se
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ initData: getTelegramInitData() }),
       });
-      const data = (await response.json().catch(() => ({}))) as { code?: string; error?: string };
+      const data = (await response.json().catch(() => ({}))) as {
+        code?: string;
+        error?: string;
+        inquiry?: {
+          notificationStatus?: string;
+        };
+      };
 
       if (!response.ok) {
         if (data.code === "CUSTOMER_BOT_NOT_CONNECTED") {
@@ -38,7 +44,7 @@ export function ServiceInquiryButton({ service, compact = false }: { service: Se
         throw new Error(data.error ?? "Permintaan gagal dikirim.");
       }
 
-      setStatus("Permintaan dikirim");
+      setStatus(data.inquiry?.notificationStatus === "sent" ? "Permintaan dikirim" : "Tersimpan, notif bot gagal");
       window.setTimeout(() => setStatus(""), 1800);
     } catch (inquiryError) {
       setError(inquiryError instanceof Error ? inquiryError.message : "Permintaan gagal dikirim.");

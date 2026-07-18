@@ -8,7 +8,7 @@ export async function sendTelegramMessage(input: {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
   if (!botToken) {
-    return { status: "not_configured" as const };
+    return { status: "not_configured" as const, error: "TELEGRAM_BOT_TOKEN belum dikonfigurasi." };
   }
 
   const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
@@ -22,11 +22,41 @@ export async function sendTelegramMessage(input: {
   });
 
   if (!response.ok) {
-    return { status: "failed" as const };
+    return { status: "failed" as const, error: `Telegram sendMessage gagal: ${response.status}` };
   }
 
   const data = (await response.json().catch(() => ({}))) as { result?: { message_id?: number } };
-  return { status: "sent" as const, messageId: data.result?.message_id ?? null };
+  return { status: "sent" as const, messageId: data.result?.message_id ?? null, error: null };
+}
+
+export async function editTelegramMessageText(input: {
+  chatId: string;
+  messageId: number;
+  text: string;
+  replyMarkup?: unknown;
+}) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+  if (!botToken) {
+    return { status: "not_configured" as const, error: "TELEGRAM_BOT_TOKEN belum dikonfigurasi." };
+  }
+
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: input.chatId,
+      message_id: input.messageId,
+      text: input.text,
+      reply_markup: input.replyMarkup,
+    }),
+  });
+
+  if (!response.ok) {
+    return { status: "failed" as const, error: `Telegram editMessageText gagal: ${response.status}` };
+  }
+
+  return { status: "sent" as const, error: null };
 }
 
 export async function answerTelegramCallbackQuery(input: {
@@ -37,7 +67,7 @@ export async function answerTelegramCallbackQuery(input: {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
   if (!botToken) {
-    return { status: "not_configured" as const };
+    return { status: "not_configured" as const, error: "TELEGRAM_BOT_TOKEN belum dikonfigurasi." };
   }
 
   const response = await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
@@ -51,10 +81,10 @@ export async function answerTelegramCallbackQuery(input: {
   });
 
   if (!response.ok) {
-    return { status: "failed" as const };
+    return { status: "failed" as const, error: `Telegram answerCallbackQuery gagal: ${response.status}` };
   }
 
-  return { status: "sent" as const };
+  return { status: "sent" as const, error: null };
 }
 
 export async function sendTelegramPhoto(input: {
@@ -65,7 +95,7 @@ export async function sendTelegramPhoto(input: {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
   if (!botToken) {
-    return { status: "not_configured" as const };
+    return { status: "not_configured" as const, error: "TELEGRAM_BOT_TOKEN belum dikonfigurasi." };
   }
 
   const [, base64Data = ""] = input.photoDataUrl.split(",");
@@ -84,8 +114,8 @@ export async function sendTelegramPhoto(input: {
   });
 
   if (!response.ok) {
-    return { status: "failed" as const };
+    return { status: "failed" as const, error: `Telegram sendPhoto gagal: ${response.status}` };
   }
 
-  return { status: "sent" as const };
+  return { status: "sent" as const, error: null };
 }

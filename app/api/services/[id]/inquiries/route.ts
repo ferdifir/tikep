@@ -78,6 +78,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       message,
       providerRespondedAt: null,
       customerNotifiedAt: null,
+      customerNotificationStatus: null,
+      customerNotificationError: null,
+      providerMessageEditedAt: null,
+      reviewInvitedAt: null,
+      reviewInviteStatus: null,
+      reviewInviteError: null,
     },
     create: {
       serviceId: service.id,
@@ -110,7 +116,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (notification.status === "sent" && notification.messageId) {
     await prisma.serviceInquiry.update({
       where: { id: inquiry.id },
-      data: { providerMessageId: notification.messageId },
+      data: {
+        providerMessageId: notification.messageId,
+        providerNotificationStatus: notification.status,
+        providerNotificationError: null,
+      },
+    });
+  } else {
+    await prisma.serviceInquiry.update({
+      where: { id: inquiry.id },
+      data: {
+        providerNotificationStatus: notification.status,
+        providerNotificationError: notification.error ?? "Notifikasi provider gagal dikirim.",
+      },
     });
   }
 
@@ -119,6 +137,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       id: inquiry.id,
       status: inquiry.status,
       notificationStatus: notification.status,
+      notificationError: notification.error ?? null,
     },
   });
 }

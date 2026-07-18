@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { answerTelegramCallbackQuery, sendTelegramMessage } from "@/lib/telegram-bot";
+import { answerTelegramCallbackQuery, editTelegramMessageText, sendTelegramMessage } from "@/lib/telegram-bot";
 import { formatRupiah } from "@/lib/withdraw-methods";
 
 export const runtime = "nodejs";
@@ -26,6 +26,7 @@ type TelegramUpdate = {
       id: number | string;
     };
     message?: {
+      message_id?: number;
       chat: {
         id: number | string;
       };
@@ -58,6 +59,8 @@ function helpText() {
     "/pending - lihat withdraw dan gift pending",
     "/pending_withdraws - lihat pencairan pending",
     "/pending_gifts - lihat gift pending",
+    "/pending_inquiries - lihat inquiry yang belum dijawab provider",
+    "/inquiry <id> - lihat detail inquiry",
     "/withdraw_paid <id> - tandai pencairan berhasil",
     "/withdraw_reject <id> - tolak pencairan dan kembalikan saldo",
   ].join("\n");
@@ -151,6 +154,84 @@ async function listPendingGifts() {
       ].join("\n"),
     )
     .join("\n\n");
+}
+
+async function listPendingInquiries() {
+  const inquiries = await prisma.serviceInquiry.findMany({
+    where: { status: "REQUESTED" },
+    orderBy: { createdAt: "asc" },
+    take: 10,
+    include: {
+      service: true,
+      provider: {
+        include: {
+          owner: true,
+        },
+      },
+      customerUser: true,
+    },
+  });
+
+  if (!inquiries.length) {
+    return "Tidak ada inquiry pending.";
+  }
+
+  return inquiries
+    .map((inquiry) =>
+      [
+        `ID: ${inquiry.id}`,
+        `Layanan: ${inquiry.service.title}`,
+        `Provider: ${inquiry.provider.owner ? getUserLabel(inquiry.provider.owner) : inquiry.provider.name}`,
+        `Customer: ${getUserLabel(inquiry.customerUser)}`,
+        `Notif provider: ${inquiry.providerNotificationStatus ?? "-"}`,
+        inquiry.providerNotificationError ? `Error: ${inquiry.providerNotificationError}` : null,
+        inquiry.message ? `Pesan: ${inquiry.message}` : null,
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    )
+    .join("\n\n");
+}
+
+async function getInquiryDetail(inquiryId: string) {
+  const inquiry = await prisma.serviceInquiry.findUnique({
+    where: { id: inquiryId },
+    include: {
+      service: true,
+      provider: {
+        include: {
+          owner: true,
+        },
+      },
+      customerUser: true,
+      reviewCodes: {
+        orderBy: { createdAt: "desc" },
+        take: 3,
+      },
+    },
+  });
+
+  if (!inquiry) {
+    return "Inquiry tidak ditemukan.";
+  }
+
+  return [
+    `ID: ${inquiry.id}`,
+    `Status: ${inquiry.status}`,
+    `Layanan: ${inquiry.service.title}`,
+    `Provider: ${inquiry.provider.owner ? getUserLabel(inquiry.provider.owner) : inquiry.provider.name}`,
+    `Customer: ${getUserLabel(inquiry.customerUser)}`,
+    `Notif provider: ${inquiry.providerNotificationStatus ?? "-"}`,
+    inquiry.providerNotificationError ? `Error provider: ${inquiry.providerNotificationError}` : null,
+    `Notif customer: ${inquiry.customerNotificationStatus ?? "-"}`,
+    inquiry.customerNotificationError ? `Error customer: ${inquiry.customerNotificationError}` : null,
+    `Review invite: ${inquiry.reviewInviteStatus ?? "-"}`,
+    inquiry.reviewInviteError ? `Error review: ${inquiry.reviewInviteError}` : null,
+    `Jumlah code review: ${inquiry.reviewCodes.length}`,
+    inquiry.message ? `Pesan: ${inquiry.message}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 async function markWithdrawPaid(withdrawId: string) {
@@ -279,8 +360,12 @@ async function handleAdminCommand(text: string) {
   }
 
   if (command === "/pending") {
-    const [withdraws, gifts] = await Promise.all([listPendingWithdraws(), listPendingGifts()]);
-    return [`Pencairan pending:`, withdraws, `Gift pending:`, gifts].join("\n\n");
+    const [withdraws, gifts, inquiries] = await Promise.all([
+      listPendingWithdraws(),
+      listPendingGifts(),
+      listPendingInquiries(),
+    ]);
+    return [`Pencairan pending:`, withdraws, `Gift pending:`, gifts, `Inquiry pending:`, inquiries].join("\n\n");
   }
 
   if (command === "/pending_withdraws") {
@@ -289,6 +374,18 @@ async function handleAdminCommand(text: string) {
 
   if (command === "/pending_gifts") {
     return listPendingGifts();
+  }
+
+  if (command === "/pending_inquiries") {
+    return listPendingInquiries();
+  }
+
+  if (command === "/inquiry") {
+    if (!argument) {
+      return "Format: /inquiry <id>";
+    }
+
+    return getInquiryDetail(argument);
   }
 
   if (command === "/withdraw_paid") {
@@ -380,44 +477,66 @@ async function handleInquiryCallback(update: TelegramUpdate) {
     return true;
   }
 
+  const respondedAt = new Date();
+  const customerNotification = inquiry.customerUser.telegramChatId
+    ? await sendTelegramMessage({
+        chatId: inquiry.customerUser.telegramChatId,
+        text:
+          action === "ACCEPTED"
+            ? inquiry.provider.owner?.username
+              ? [
+                  `Provider menerima permintaan kamu untuk ${inquiry.service.title}.`,
+                  `Hubungi provider: @${inquiry.provider.owner.username}`,
+                  `https://t.me/${inquiry.provider.owner.username}`,
+                ].join("\n")
+              : `Provider menerima permintaan kamu untuk ${inquiry.service.title}.`
+            : `Provider belum bisa menerima permintaan kamu untuk ${inquiry.service.title}.`,
+      })
+    : { status: "failed" as const, error: "Customer belum punya chat_id Telegram.", messageId: null };
+
   const updatedInquiry = await prisma.serviceInquiry.update({
     where: { id: inquiry.id },
     data: {
       status: action,
-      providerRespondedAt: new Date(),
-      customerNotifiedAt: inquiry.customerUser.telegramChatId ? new Date() : null,
+      providerRespondedAt: respondedAt,
+      customerNotifiedAt: customerNotification.status === "sent" ? respondedAt : null,
+      customerNotificationStatus: customerNotification.status,
+      customerNotificationError: customerNotification.error ?? null,
     },
   });
-
-  if (inquiry.customerUser.telegramChatId) {
-    const providerUsername = inquiry.provider.owner?.username;
-    const acceptedText = providerUsername
-      ? [
-          `Provider menerima permintaan kamu untuk ${inquiry.service.title}.`,
-          `Hubungi provider: @${providerUsername}`,
-          `https://t.me/${providerUsername}`,
-        ].join("\n")
-      : `Provider menerima permintaan kamu untuk ${inquiry.service.title}.`;
-    const rejectedText = `Provider belum bisa menerima permintaan kamu untuk ${inquiry.service.title}.`;
-
-    await sendTelegramMessage({
-      chatId: inquiry.customerUser.telegramChatId,
-      text: action === "ACCEPTED" ? acceptedText : rejectedText,
-    });
-  }
 
   await answerTelegramCallbackQuery({
     callbackQueryId: callback.id,
     text: action === "ACCEPTED" ? "Permintaan diterima." : "Permintaan ditolak.",
   });
 
-  if (callback.message?.chat.id) {
+  const providerSummary =
+    updatedInquiry.status === "ACCEPTED"
+      ? `Kamu menerima permintaan ${getUserLabel(inquiry.customerUser)} untuk ${inquiry.service.title}.`
+      : `Kamu menolak permintaan ${getUserLabel(inquiry.customerUser)} untuk ${inquiry.service.title}.`;
+
+  if (callback.message?.chat.id && callback.message.message_id) {
+    const editResult = await editTelegramMessageText({
+      chatId: String(callback.message.chat.id),
+      messageId: callback.message.message_id,
+      text: providerSummary,
+    });
+
+    if (editResult.status === "sent") {
+      await prisma.serviceInquiry.update({
+        where: { id: inquiry.id },
+        data: { providerMessageEditedAt: new Date() },
+      });
+    } else {
+      await sendTelegramMessage({
+        chatId: String(callback.message.chat.id),
+        text: `${providerSummary}\n\nCatatan: pesan tombol lama gagal diperbarui.`,
+      });
+    }
+  } else if (callback.message?.chat.id) {
     await sendTelegramMessage({
       chatId: String(callback.message.chat.id),
-      text:
-        updatedInquiry.status === "ACCEPTED"
-          ? `Kamu menerima permintaan ${getUserLabel(inquiry.customerUser)} untuk ${inquiry.service.title}.`
-          : `Kamu menolak permintaan ${getUserLabel(inquiry.customerUser)} untuk ${inquiry.service.title}.`,
+      text: providerSummary,
     });
   }
 

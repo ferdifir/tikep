@@ -27,6 +27,11 @@ type ReviewInviteInquiry = {
   customerLabel: string;
   createdAt: string;
   updatedAt: string;
+  availableAt: string;
+  canInvite: boolean;
+  hasActiveInvite: boolean;
+  inviteStatus: string | null;
+  inviteError: string | null;
 };
 
 export default function ServicePreviewPage() {
@@ -98,7 +103,8 @@ export default function ServicePreviewPage() {
     });
 
     if (!response.ok) {
-      setInviteError("Gagal membuat link review.");
+      const errorData = (await response.json().catch(() => ({}))) as { error?: string };
+      setInviteError(errorData.error ?? "Gagal membuat link review.");
       return;
     }
 
@@ -110,7 +116,18 @@ export default function ServicePreviewPage() {
       };
     };
     setInviteLink(data.invite.telegramUrl ?? data.invite.reviewUrl);
-    setInviteStatus("Invite review dikirim ke customer melalui bot.");
+    setInviteStatus(
+      data.invite.botMessageStatus === "sent"
+        ? "Invite review dikirim ke customer melalui bot."
+        : "Invite review dibuat, tapi bot gagal mengirim. Bagikan link secara manual.",
+    );
+    setReviewInquiries((current) =>
+      current.map((inquiry) =>
+        inquiry.id === selectedInquiryId
+          ? { ...inquiry, status: "REVIEW_INVITED", hasActiveInvite: true, canInvite: false, inviteStatus: data.invite.botMessageStatus }
+          : inquiry,
+      ),
+    );
   }
 
   async function handleShareService() {
@@ -256,7 +273,12 @@ export default function ServicePreviewPage() {
                   >
                     {reviewInquiries.map((inquiry) => (
                       <option key={inquiry.id} value={inquiry.id}>
-                        {inquiry.customerLabel} - {inquiry.status}
+                        {inquiry.customerLabel} -{" "}
+                        {inquiry.hasActiveInvite
+                          ? "invite aktif"
+                          : inquiry.canInvite
+                            ? "siap invite"
+                            : `siap ${new Date(inquiry.availableAt).toLocaleDateString("id-ID")}`}
                       </option>
                     ))}
                   </select>
@@ -270,7 +292,7 @@ export default function ServicePreviewPage() {
                 <button
                   type="button"
                   onClick={handleCreateReviewInvite}
-                  disabled={!selectedInquiryId}
+                  disabled={!reviewInquiries.find((inquiry) => inquiry.id === selectedInquiryId)?.canInvite}
                   className="flex h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white transition hover:bg-indigo-700"
                 >
                   <LinkIcon className="h-4 w-4" />
@@ -286,6 +308,26 @@ export default function ServicePreviewPage() {
                   Share
                 </button>
               </div>
+              {selectedInquiryId ? (
+                <p className="text-xs font-semibold leading-5 text-indigo-700">
+                  {(() => {
+                    const selectedInquiry = reviewInquiries.find((inquiry) => inquiry.id === selectedInquiryId);
+                    if (!selectedInquiry) {
+                      return "";
+                    }
+                    if (selectedInquiry.hasActiveInvite) {
+                      return "Customer ini sudah punya invite review aktif.";
+                    }
+                    if (!selectedInquiry.canInvite) {
+                      return `Invite bisa dikirim setelah ${new Date(selectedInquiry.availableAt).toLocaleString("id-ID")}.`;
+                    }
+                    if (selectedInquiry.inviteError) {
+                      return selectedInquiry.inviteError;
+                    }
+                    return "Customer ini sudah melewati jeda penggunaan dan siap diminta review.";
+                  })()}
+                </p>
+              ) : null}
               {inviteStatus ? <p className="text-xs font-semibold text-indigo-700">{inviteStatus}</p> : null}
               {inviteError ? <p className="text-xs font-semibold text-rose-600">{inviteError}</p> : null}
               {inviteLink ? (
