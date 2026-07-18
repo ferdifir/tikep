@@ -4,6 +4,7 @@ import { ArrowLeft, CheckCircle2, ImagePlus, Loader2, Upload } from "lucide-reac
 import { useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTikep } from "@/components/app-provider";
+import { createVideoThumbnailFile } from "@/lib/video-thumbnail";
 
 const maxUploadBytes = 25 * 1024 * 1024;
 const allowedTypes = ["image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm"];
@@ -20,12 +21,15 @@ export default function NewMediaPage() {
   const router = useRouter();
   const { currentUser } = useTikep();
   const [file, setFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
   const [caption, setCaption] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const previewUrlRef = useRef("");
+  const thumbnailPreviewUrlRef = useRef("");
 
   const authorLabel = useMemo(() => getDisplayUsername(currentUser), [currentUser]);
   const isVideo = file?.type.startsWith("video/") ?? false;
@@ -35,6 +39,9 @@ export default function NewMediaPage() {
       if (previewUrlRef.current) {
         URL.revokeObjectURL(previewUrlRef.current);
       }
+      if (thumbnailPreviewUrlRef.current) {
+        URL.revokeObjectURL(thumbnailPreviewUrlRef.current);
+      }
     };
   }, []);
 
@@ -43,10 +50,16 @@ export default function NewMediaPage() {
       URL.revokeObjectURL(previewUrlRef.current);
       previewUrlRef.current = "";
     }
+    if (thumbnailPreviewUrlRef.current) {
+      URL.revokeObjectURL(thumbnailPreviewUrlRef.current);
+      thumbnailPreviewUrlRef.current = "";
+    }
 
     if (!nextFile) {
       setPreviewUrl("");
+      setThumbnailPreviewUrl("");
       setFile(null);
+      setThumbnailFile(null);
       return;
     }
 
@@ -54,9 +67,11 @@ export default function NewMediaPage() {
     previewUrlRef.current = objectUrl;
     setPreviewUrl(objectUrl);
     setFile(nextFile);
+    setThumbnailFile(null);
+    setThumbnailPreviewUrl("");
   }
 
-  function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const selectedFile = event.target.files?.[0] ?? null;
     setError("");
 
@@ -78,6 +93,18 @@ export default function NewMediaPage() {
     }
 
     replacePreviewFile(selectedFile);
+
+    if (selectedFile.type.startsWith("video/")) {
+      try {
+        const generatedThumbnail = await createVideoThumbnailFile(selectedFile);
+        const thumbnailObjectUrl = URL.createObjectURL(generatedThumbnail);
+        thumbnailPreviewUrlRef.current = thumbnailObjectUrl;
+        setThumbnailFile(generatedThumbnail);
+        setThumbnailPreviewUrl(thumbnailObjectUrl);
+      } catch (thumbnailError) {
+        setError(thumbnailError instanceof Error ? thumbnailError.message : "Thumbnail video gagal dibuat.");
+      }
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -89,6 +116,9 @@ export default function NewMediaPage() {
 
     const formData = new FormData();
     formData.append("file", file);
+    if (thumbnailFile) {
+      formData.append("thumbnailFile", thumbnailFile);
+    }
     formData.append("isAnonymous", String(isAnonymous));
     formData.append("caption", caption);
 
@@ -190,7 +220,10 @@ export default function NewMediaPage() {
           <div className="overflow-hidden rounded-lg border border-gray-200 bg-black">
             <div className="relative aspect-[4/5]">
               {previewUrl ? (
-                isVideo ? (
+                isVideo && thumbnailPreviewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={thumbnailPreviewUrl} alt="Thumbnail video" className="h-full w-full object-cover" />
+                ) : isVideo ? (
                   <video src={previewUrl} className="h-full w-full object-cover" controls muted playsInline />
                 ) : (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -207,12 +240,17 @@ export default function NewMediaPage() {
                   by {authorLabel}
                 </span>
               ) : null}
+              {isVideo && previewUrl ? (
+                <span className="absolute right-2 top-2 rounded-full bg-black/45 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
+                  {thumbnailPreviewUrl ? "Thumbnail otomatis" : "Membaca frame"}
+                </span>
+              ) : null}
             </div>
           </div>
 
           <button
             type="submit"
-            disabled={!file || isSubmitting}
+            disabled={!file || (isVideo && !thumbnailFile) || isSubmitting}
             className="flex h-11 min-w-28 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
           >
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : file ? <Upload className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}

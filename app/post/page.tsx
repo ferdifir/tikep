@@ -2,7 +2,7 @@
 
 import { CheckCircle2, PlusCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTikep } from "@/components/app-provider";
 import type { ServiceCategory } from "@/lib/types";
 
@@ -18,13 +18,66 @@ export default function PostPage() {
   const [customCategory, setCustomCategory] = useState("");
   const [price, setPrice] = useState("199000");
   const [description, setDescription] = useState("");
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const coverPreviewUrlRef = useRef("");
+
+  useEffect(() => {
+    return () => {
+      if (coverPreviewUrlRef.current) {
+        URL.revokeObjectURL(coverPreviewUrlRef.current);
+      }
+    };
+  }, []);
+
+  function replaceCoverFile(nextFile: File | null) {
+    if (coverPreviewUrlRef.current) {
+      URL.revokeObjectURL(coverPreviewUrlRef.current);
+      coverPreviewUrlRef.current = "";
+    }
+
+    if (!nextFile) {
+      setCoverFile(null);
+      setCoverPreviewUrl("");
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(nextFile);
+    coverPreviewUrlRef.current = objectUrl;
+    setCoverFile(nextFile);
+    setCoverPreviewUrl(objectUrl);
+  }
+
+  function handleCoverChange(event: ChangeEvent<HTMLInputElement>) {
+    const selectedFile = event.target.files?.[0] ?? null;
+    setError("");
+
+    if (!selectedFile) {
+      replaceCoverFile(null);
+      return;
+    }
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(selectedFile.type)) {
+      replaceCoverFile(null);
+      setError("Cover harus JPG, PNG, atau WebP.");
+      return;
+    }
+
+    if (selectedFile.size > 25 * 1024 * 1024) {
+      replaceCoverFile(null);
+      setError("Ukuran cover maksimal 25 MB.");
+      return;
+    }
+
+    replaceCoverFile(selectedFile);
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!canSubmit) {
+    if (!canSubmit || !coverFile) {
       return;
     }
 
@@ -36,6 +89,7 @@ export default function PostPage() {
         category,
         price: Number(price),
         description,
+        coverFile,
       });
       setSubmitted(true);
       setTitle("");
@@ -43,6 +97,7 @@ export default function PostPage() {
       setCategory("Desain");
       setPrice("199000");
       setDescription("");
+      replaceCoverFile(null);
     } catch {
       setError("Layanan gagal ditambahkan.");
     }
@@ -67,6 +122,7 @@ export default function PostPage() {
 
   const canSubmit =
     title.trim().length >= 4 &&
+    Boolean(coverFile) &&
     (provider.trim() || defaultProvider).length >= 2 &&
     Number(price) > 0 &&
     description.trim().length >= 12;
@@ -98,6 +154,29 @@ export default function PostPage() {
             {error}
           </div>
         ) : null}
+
+        <label className="block space-y-2">
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Cover foto</span>
+          <div className="grid grid-cols-[112px_1fr] gap-3">
+            <div className="overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+              <div className="relative aspect-square">
+                {coverPreviewUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={coverPreviewUrl} alt="Preview cover layanan" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-gray-400">
+                    <PlusCircle className="h-6 w-6" />
+                  </div>
+                )}
+              </div>
+            </div>
+            <label className="flex cursor-pointer flex-col justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 text-sm text-gray-600 transition hover:border-indigo-300 hover:bg-indigo-50/40">
+              <span className="font-bold text-gray-900">{coverFile ? coverFile.name : "Pilih cover foto"}</span>
+              <span className="mt-1 text-xs leading-5 text-gray-500">JPG, PNG, atau WebP. Cover tampil di card dan profil.</span>
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleCoverChange} className="sr-only" />
+            </label>
+          </div>
+        </label>
 
         <label className="block space-y-1.5">
           <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Judul layanan</span>

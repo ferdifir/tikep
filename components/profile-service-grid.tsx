@@ -12,6 +12,7 @@ export function ProfileServiceGrid({ services }: { services: Service[] }) {
     <div className="grid grid-cols-2 gap-3">
       {services.map((service, index) => {
         const media = getServiceMedia(service.id, index);
+        const coverUrl = service.coverUrl ?? media.cover;
 
         return (
           <Link
@@ -22,7 +23,7 @@ export function ProfileServiceGrid({ services }: { services: Service[] }) {
           >
             <article className="relative aspect-[3/4] overflow-hidden rounded-[6px] bg-gray-200">
               <NextImage
-                src={media.cover}
+                src={coverUrl}
                 alt={`Preview ${service.title}`}
                 fill
                 sizes="(max-width: 640px) 50vw, 220px"

@@ -3,6 +3,7 @@ import { getDemoUser } from "@/lib/demo-user";
 import { mapService, serviceInclude } from "@/lib/db-mappers";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/slugify";
+import { allowedImageTypes, getUploadMeta, saveUploadFile } from "@/lib/upload-files";
 
 function makeAvatar(provider: string) {
   return provider
@@ -25,23 +26,31 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const user = await getDemoUser();
-  const body = (await request.json()) as {
-    title?: string;
-    provider?: string;
-    category?: string;
-    categoryId?: string;
-    price?: number;
-    description?: string;
-  };
-  const title = body.title?.trim() ?? "";
-  const providerName = body.provider?.trim() ?? "";
-  const categoryName = body.category?.trim() ?? "";
-  const description = body.description?.trim() ?? "";
-  const price = Number(body.price);
+  const form = await request.formData();
+  const coverFile = form.get("coverFile");
+  const title = typeof form.get("title") === "string" ? String(form.get("title")).trim() : "";
+  const providerName = typeof form.get("provider") === "string" ? String(form.get("provider")).trim() : "";
+  const categoryName = typeof form.get("category") === "string" ? String(form.get("category")).trim() : "";
+  const categoryId = typeof form.get("categoryId") === "string" ? String(form.get("categoryId")).trim() : "";
+  const description = typeof form.get("description") === "string" ? String(form.get("description")).trim() : "";
+  const price = Number(form.get("price"));
 
   if (title.length < 4 || providerName.length < 2 || !Number.isFinite(price) || price <= 0 || description.length < 12) {
     return NextResponse.json({ error: "Data layanan belum lengkap." }, { status: 400 });
   }
+
+  if (!(coverFile instanceof File)) {
+    return NextResponse.json({ error: "Cover foto wajib dipilih." }, { status: 400 });
+  }
+
+  const coverMeta = getUploadMeta(coverFile, allowedImageTypes);
+
+  if ("error" in coverMeta) {
+    const coverError = coverMeta.error ?? "Cover tidak valid.";
+    return NextResponse.json({ error: coverError }, { status: coverError.includes("Ukuran") ? 413 : 415 });
+  }
+
+  const savedCover = await saveUploadFile(coverFile, { allowedTypes: allowedImageTypes });
 
   const provider = await prisma.provider.upsert({
     where: { slug: slugify(providerName) },
@@ -58,8 +67,8 @@ export async function POST(request: Request) {
     },
   });
 
-  const category = body.categoryId
-    ? await prisma.category.findUnique({ where: { id: body.categoryId } })
+  const category = categoryId
+    ? await prisma.category.findUnique({ where: { id: categoryId } })
     : await prisma.category.findFirst({
         where: {
           slug: slugify(categoryName),
@@ -119,8 +128,8 @@ export async function POST(request: Request) {
         create: {
           providerId: provider.id,
           type: "PHOTO",
-          url: "https://images.unsplash.com/photo-1558655146-9f40138edfeb?auto=format&fit=crop&w=600&q=80",
-          thumbnailUrl: "https://images.unsplash.com/photo-1558655146-9f40138edfeb?auto=format&fit=crop&w=600&q=80",
+          url: savedCover.url,
+          thumbnailUrl: savedCover.url,
           altText: `Media ${title}`,
           sortOrder: 0,
         },

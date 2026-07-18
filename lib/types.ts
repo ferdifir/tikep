@@ -25,6 +25,7 @@ export type Service = {
   description: string;
   iconName: string;
   previewLabel: string;
+  coverUrl: string | null;
   reviews: Review[];
   owner: "me" | "other";
   createdAt: string;
@@ -36,6 +37,7 @@ export type NewServiceInput = {
   category: ServiceCategory;
   price: number;
   description: string;
+  coverFile: File;
 };
 
 export type IconMap = Record<string, LucideIcon>;

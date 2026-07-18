@@ -15,6 +15,7 @@ export const seedServices: Service[] = [
     description: "Template UI/UX lengkap untuk aplikasi e-commerce. Berisi 50+ halaman siap pakai di Figma.",
     iconName: "layers",
     previewLabel: "Pratinjau Produk Digital",
+    coverUrl: null,
     owner: "other",
     createdAt: "2026-07-17",
     reviews: [
@@ -53,6 +54,7 @@ export const seedServices: Service[] = [
     description: "Menaikkan ranking website Anda ke halaman pertama Google hanya dalam waktu 1 hari garansi.",
     iconName: "trending-up",
     previewLabel: "Pratinjau Jasa Digital",
+    coverUrl: null,
     owner: "other",
     createdAt: "2026-07-16",
     reviews: [
@@ -91,6 +93,7 @@ export const seedServices: Service[] = [
     description: "Paket headline, struktur penawaran, dan CTA untuk landing page produk digital.",
     iconName: "pen-line",
     previewLabel: "Pratinjau Konten",
+    coverUrl: null,
     owner: "me",
     createdAt: "2026-07-15",
     reviews: [
@@ -136,6 +139,7 @@ export const seedServices: Service[] = [
     description: "Review proses kerja dan rekomendasi otomasi untuk tim sales, support, atau operasional.",
     iconName: "workflow",
     previewLabel: "Pratinjau Audit",
+    coverUrl: null,
     owner: "other",
     createdAt: "2026-07-14",
     reviews: [

@@ -2,6 +2,7 @@
 
 import { Flag, Heart, Layers, PenLine, Share2, Star, ThumbsDown, ThumbsUp, TrendingUp, Workflow } from "lucide-react";
 import Link from "next/link";
+import NextImage from "next/image";
 import { useState } from "react";
 import { formatCurrency } from "@/lib/format";
 import { shareService } from "@/lib/share-links";
@@ -59,8 +60,20 @@ export function ServiceCard({ service }: { service: Service }) {
         href={`/services/${service.id}`}
         className="relative flex aspect-square flex-col items-center justify-center border-y border-gray-100 bg-slate-100 p-4 text-gray-400"
       >
-        <PreviewIcon className="mb-2 h-16 w-16 text-gray-300" />
-        <span className="text-xs font-medium text-gray-500">{service.previewLabel}</span>
+        {service.coverUrl ? (
+          <NextImage
+            src={service.coverUrl}
+            alt={`Preview ${service.title}`}
+            fill
+            sizes="(max-width: 640px) 100vw, 448px"
+            className="object-cover"
+          />
+        ) : (
+          <>
+            <PreviewIcon className="mb-2 h-16 w-16 text-gray-300" />
+            <span className="text-xs font-medium text-gray-500">{service.previewLabel}</span>
+          </>
+        )}
         <span className="absolute bottom-3 left-3 rounded bg-black/70 px-2 py-1 text-xs font-bold text-white">
           {formatCurrency(service.price)}
         </span>

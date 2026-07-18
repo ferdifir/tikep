@@ -2,6 +2,7 @@
 
 import { ArrowLeft, Copy, Flag, Heart, Layers, LinkIcon, MessageCircle, PenLine, Share2, ThumbsDown, ThumbsUp, TrendingUp, Workflow } from "lucide-react";
 import Link from "next/link";
+import NextImage from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { EmptyState } from "@/components/empty-state";
@@ -146,8 +147,21 @@ export default function ServicePreviewPage() {
         </div>
 
         <div className="relative flex aspect-square flex-col items-center justify-center border-y border-gray-100 bg-slate-100 p-4 text-gray-400">
-          <PreviewIcon className="mb-2 h-20 w-20 text-gray-300" />
-          <span className="text-xs font-medium text-gray-500">{service.previewLabel}</span>
+          {service.coverUrl ? (
+            <NextImage
+              src={service.coverUrl}
+              alt={`Preview ${service.title}`}
+              fill
+              priority
+              sizes="(max-width: 640px) 100vw, 448px"
+              className="object-cover"
+            />
+          ) : (
+            <>
+              <PreviewIcon className="mb-2 h-20 w-20 text-gray-300" />
+              <span className="text-xs font-medium text-gray-500">{service.previewLabel}</span>
+            </>
+          )}
           <span className="absolute bottom-3 left-3 rounded bg-black/70 px-2 py-1 text-xs font-bold text-white">
             {formatCurrency(service.price)}
           </span>

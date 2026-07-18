@@ -1,20 +1,9 @@
 import { NextResponse } from "next/server";
-import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { getUserFromInitDataOrDemo } from "@/lib/request-user";
 import { prisma } from "@/lib/prisma";
+import { allowedImageTypes, getUploadMeta, saveUploadFile } from "@/lib/upload-files";
 
 export const runtime = "nodejs";
-
-const maxUploadBytes = 25 * 1024 * 1024;
-const allowedTypes = new Map([
-  ["image/jpeg", { extension: "jpg", type: "PHOTO" }],
-  ["image/png", { extension: "png", type: "PHOTO" }],
-  ["image/webp", { extension: "webp", type: "PHOTO" }],
-  ["video/mp4", { extension: "mp4", type: "VIDEO" }],
-  ["video/webm", { extension: "webm", type: "VIDEO" }],
-]);
 
 function toMediaResponse<
   T extends {
@@ -64,6 +53,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const form = await request.formData();
   const file = form.get("file");
+  const thumbnailFile = form.get("thumbnailFile");
   const initData = form.get("initData");
   const isAnonymous = form.get("isAnonymous") !== "false";
   const caption = typeof form.get("caption") === "string" ? String(form.get("caption")).trim() : "";
@@ -72,34 +62,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "File foto/video wajib dipilih." }, { status: 400 });
   }
 
-  const fileMeta = allowedTypes.get(file.type);
+  const uploadMeta = getUploadMeta(file);
 
-  if (!fileMeta) {
-    return NextResponse.json({ error: "Format file belum didukung." }, { status: 415 });
+  if ("error" in uploadMeta) {
+    const uploadError = uploadMeta.error ?? "Upload tidak valid.";
+    return NextResponse.json({ error: uploadError }, { status: uploadError.includes("Ukuran") ? 413 : 415 });
   }
 
-  if (file.size <= 0 || file.size > maxUploadBytes) {
-    return NextResponse.json({ error: "Ukuran file maksimal 25 MB." }, { status: 413 });
+  if (uploadMeta.fileMeta.type === "VIDEO" && !(thumbnailFile instanceof File)) {
+    return NextResponse.json({ error: "Thumbnail video gagal dibuat." }, { status: 400 });
   }
 
   const user = await getUserFromInitDataOrDemo(typeof initData === "string" ? initData : undefined);
-  const uploadDir = path.join(process.cwd(), "public", "uploads", "media");
-  const filename = `${Date.now()}-${randomUUID()}.${fileMeta.extension}`;
-  const diskPath = path.join(uploadDir, filename);
-  const publicUrl = `/uploads/media/${filename}`;
-
-  await mkdir(uploadDir, { recursive: true });
-  await writeFile(diskPath, Buffer.from(await file.arrayBuffer()));
+  const savedFile = await saveUploadFile(file);
+  const savedThumbnail =
+    thumbnailFile instanceof File
+      ? await saveUploadFile(thumbnailFile, { allowedTypes: allowedImageTypes })
+      : null;
 
   const createdMedia = await prisma.media.create({
     data: {
       authorUserId: isAnonymous ? null : user.id,
       isAnonymous,
       caption: caption || null,
-      type: fileMeta.type,
-      url: publicUrl,
-      thumbnailUrl: fileMeta.type === "PHOTO" ? publicUrl : null,
-      altText: caption || (fileMeta.type === "PHOTO" ? "Foto showcase Tikep" : "Video showcase Tikep"),
+      type: savedFile.type,
+      url: savedFile.url,
+      thumbnailUrl: savedThumbnail?.url ?? (savedFile.type === "PHOTO" ? savedFile.url : null),
+      altText: caption || (savedFile.type === "PHOTO" ? "Foto showcase Tikep" : "Video showcase Tikep"),
     },
     select: {
       id: true,

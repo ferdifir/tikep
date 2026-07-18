@@ -123,12 +123,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
       },
       async addService(input) {
+        const formData = new FormData();
+        formData.append("title", input.title);
+        formData.append("provider", input.provider);
+        formData.append("category", input.category);
+        formData.append("price", String(input.price));
+        formData.append("description", input.description);
+        formData.append("coverFile", input.coverFile);
+
         const response = await fetch("/api/services", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(input),
+          body: formData,
         });
 
         if (!response.ok) {

@@ -142,6 +142,7 @@ Rules:
 - Explore reads directly from this table and renders media-only masonry cards.
 - The plus button in Explore creates standalone media, not a service/product listing.
 - Uploaded files are stored under `public/uploads/media` for the local SQLite version.
+- Video uploads generate a thumbnail in the browser from the selected local file and submit that image with the video.
 - Anonymous media should not expose author text in API responses or previews.
 - Anonymous media cannot receive gift payments.
 - Non-anonymous media can expose the Telegram username in previews as `by @username` and can receive QRIS gifts.
@@ -342,6 +343,7 @@ Initial route handlers:
 - `POST /api/services`
   - creates a new service for the current user's provider
   - accepts `categoryId`
+  - accepts a cover photo file as multipart form data and stores it as the first service media item
 
 - `GET /api/categories`
   - returns system categories and custom categories available to the current user/provider

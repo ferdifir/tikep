@@ -29,6 +29,10 @@ type DbService = {
     text: string;
     createdAt: Date;
   }[];
+  media: {
+    url: string;
+    thumbnailUrl: string | null;
+  }[];
 };
 
 export function mapService(service: DbService): Service {
@@ -44,6 +48,7 @@ export function mapService(service: DbService): Service {
     description: service.description,
     iconName: service.iconName,
     previewLabel: service.previewLabel,
+    coverUrl: service.media[0]?.thumbnailUrl ?? service.media[0]?.url ?? null,
     owner: service.ownerKind === "me" ? "me" : "other",
     createdAt: service.createdAt.toISOString().slice(0, 10),
     reviews: service.reviews.map((review) => ({
@@ -85,6 +90,16 @@ export const serviceInclude = {
       author: true,
       text: true,
       createdAt: true,
+    },
+  },
+  media: {
+    orderBy: {
+      sortOrder: "asc" as const,
+    },
+    take: 1,
+    select: {
+      url: true,
+      thumbnailUrl: true,
     },
   },
 };
