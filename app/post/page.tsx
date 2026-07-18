@@ -2,15 +2,18 @@
 
 import { CheckCircle2, PlusCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { useTikep } from "@/components/app-provider";
 import type { ServiceCategory } from "@/lib/types";
 
 export default function PostPage() {
   const router = useRouter();
-  const { addCategory, addService, categories } = useTikep();
+  const { addCategory, addService, categories, currentUser } = useTikep();
+  const defaultProvider = useMemo(() => {
+    return [currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ") || currentUser.username || "Penyedia Tikep";
+  }, [currentUser]);
   const [title, setTitle] = useState("");
-  const [provider, setProvider] = useState("Tikep Studio");
+  const [provider, setProvider] = useState("");
   const [category, setCategory] = useState<ServiceCategory>("Desain");
   const [customCategory, setCustomCategory] = useState("");
   const [price, setPrice] = useState("199000");
@@ -29,14 +32,14 @@ export default function PostPage() {
       setError("");
       await addService({
         title,
-        provider,
+        provider: provider.trim() || defaultProvider,
         category,
         price: Number(price),
         description,
       });
       setSubmitted(true);
       setTitle("");
-      setProvider("Tikep Studio");
+      setProvider("");
       setCategory("Desain");
       setPrice("199000");
       setDescription("");
@@ -62,7 +65,11 @@ export default function PostPage() {
     }
   }
 
-  const canSubmit = title.trim().length >= 4 && provider.trim().length >= 2 && Number(price) > 0 && description.trim().length >= 12;
+  const canSubmit =
+    title.trim().length >= 4 &&
+    (provider.trim() || defaultProvider).length >= 2 &&
+    Number(price) > 0 &&
+    description.trim().length >= 12;
 
   return (
     <div className="p-4">
@@ -107,6 +114,7 @@ export default function PostPage() {
           <input
             value={provider}
             onChange={(event) => setProvider(event.target.value)}
+            placeholder={defaultProvider}
             className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
           />
         </label>

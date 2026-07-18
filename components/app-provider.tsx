@@ -16,7 +16,6 @@ type AppContextValue = {
   reportService: (serviceId: string) => void;
   addService: (input: NewServiceInput) => Promise<Service>;
   addCategory: (name: string) => Promise<string>;
-  resetDemoData: () => void;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -167,12 +166,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             : [...current.categories, data.category.name],
         }));
         return data.category.name;
-      },
-      resetDemoData() {
-        fetch("/api/demo/reset", { method: "POST" })
-          .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Failed to reset demo data"))))
-          .then((data: AppStateResponse) => setState(mapAppState(data)))
-          .catch(() => setState(defaultState));
       },
     }),
     [homeFiltersOpen, state],

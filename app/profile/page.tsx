@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, RefreshCw, ShieldCheck, Wallet } from "lucide-react";
+import { Heart, ShieldCheck, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
@@ -9,7 +9,7 @@ import { useTikep } from "@/components/app-provider";
 import { TikepLogo } from "@/components/tikep-logo";
 
 export default function ProfilePage() {
-  const { currentUser, services, recommendedIds, reportedIds, resetDemoData } = useTikep();
+  const { currentUser, services, recommendedIds, reportedIds } = useTikep();
   const [wallet, setWallet] = useState<{ balance: number; pendingWithdraw: number; totalEarned: number } | null>(null);
   const myServices = services.filter((service) => service.owner === "me");
   const recommendedServices = services.filter((service) => recommendedIds.includes(service.id));
@@ -33,15 +33,6 @@ export default function ProfilePage() {
             <h1 className="truncate text-lg font-bold text-gray-900">{profileName}</h1>
             <p className="truncate text-sm text-gray-500">{profileSubtitle}</p>
           </div>
-          <button
-            type="button"
-            onClick={resetDemoData}
-            aria-label="Reset data demo"
-            title="Reset data demo"
-            className="rounded-full border border-gray-200 bg-white p-2 text-gray-500 transition hover:text-gray-900"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </button>
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
