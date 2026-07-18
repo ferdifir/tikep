@@ -10,6 +10,12 @@ export async function POST() {
 
   await prisma.$transaction([
     prisma.reviewCode.deleteMany({}),
+    prisma.media.deleteMany({
+      where: {
+        serviceId: null,
+        OR: [{ authorUserId: user.id }, { authorUserId: null }],
+      },
+    }),
     prisma.review.deleteMany({
       where: {
         id: {

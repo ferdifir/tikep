@@ -5,6 +5,7 @@ import { seedServices } from "@/lib/seed-data";
 import type { NewServiceInput, Service } from "@/lib/types";
 
 type AppContextValue = {
+  currentUser: CurrentUser;
   services: Service[];
   categories: string[];
   recommendedIds: string[];
@@ -21,13 +22,29 @@ type AppContextValue = {
 const AppContext = createContext<AppContextValue | null>(null);
 
 type StoredState = {
+  currentUser: CurrentUser;
   services: Service[];
   categories: string[];
   recommendedIds: string[];
   reportedIds: string[];
 };
 
+type CurrentUser = {
+  id: string;
+  username: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  photoUrl: string | null;
+};
+
 const defaultState: StoredState = {
+  currentUser: {
+    id: "demo",
+    username: "tikep_demo",
+    firstName: "Tikep",
+    lastName: "Studio",
+    photoUrl: null,
+  },
   services: seedServices,
   categories: ["Desain", "Marketing", "Teknologi", "Konten"],
   recommendedIds: [],
@@ -40,6 +57,7 @@ type AppStateResponse = Omit<StoredState, "categories"> & {
 
 function mapAppState(response: AppStateResponse): StoredState {
   return {
+    currentUser: response.currentUser,
     services: response.services,
     categories: response.categories.map((category) => category.name),
     recommendedIds: response.recommendedIds,
@@ -62,6 +80,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AppContextValue>(
     () => ({
+      currentUser: state.currentUser,
       services: state.services,
       categories: state.categories,
       recommendedIds: state.recommendedIds,

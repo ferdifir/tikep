@@ -9,6 +9,8 @@ out
 lib/generated/prisma
 dev.db*
 prisma/dev.db*
+public/uploads/media/*
+!public/uploads/media/.gitkeep
 
 # production
 build

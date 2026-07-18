@@ -1,6 +1,18 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+function toMediaResponse<
+  T extends {
+    isAnonymous: boolean;
+    authorUser: { username: string | null; firstName: string | null; lastName: string | null } | null;
+  },
+>(media: T) {
+  return {
+    ...media,
+    authorUser: media.isAnonymous ? null : media.authorUser,
+  };
+}
+
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const media = await prisma.media.findFirst({
@@ -10,11 +22,21 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     select: {
       id: true,
       serviceId: true,
+      isAnonymous: true,
+      caption: true,
       type: true,
       url: true,
       thumbnailUrl: true,
       altText: true,
       sortOrder: true,
+      createdAt: true,
+      authorUser: {
+        select: {
+          username: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
       service: {
         select: {
           id: true,
@@ -28,5 +50,5 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Media tidak ditemukan." }, { status: 404 });
   }
 
-  return NextResponse.json({ media });
+  return NextResponse.json({ media: toMediaResponse(media) });
 }

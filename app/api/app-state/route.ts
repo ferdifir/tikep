@@ -25,6 +25,13 @@ export async function GET() {
   ]);
 
   return NextResponse.json({
+    currentUser: {
+      id: user.id,
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      photoUrl: user.photoUrl,
+    },
     services: services.map(mapService),
     categories,
     recommendedIds: recommendations.map((item) => item.serviceId),

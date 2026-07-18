@@ -121,8 +121,11 @@ Represents photo/video showcase content.
 
 Fields:
 - `id`
-- `providerId`
+- `providerId` nullable
 - `serviceId` nullable
+- `authorUserId` nullable
+- `isAnonymous`
+- `caption` nullable
 - `type`: `PHOTO` or `VIDEO`
 - `url`
 - `thumbnailUrl`
@@ -131,10 +134,17 @@ Fields:
 - `createdAt`
 
 Relations:
-- belongs to provider
+- optionally belongs to provider
 - optionally belongs to a service
+- optionally belongs to the Telegram user who posted it
 
-Explore should read from this table. Existing Unsplash demo covers can be moved into seed data until uploads are implemented.
+Rules:
+- Explore reads directly from this table and renders media-only masonry cards.
+- The plus button in Explore creates standalone media, not a service/product listing.
+- Uploaded files are stored under `public/uploads/media` for the local SQLite version.
+- Anonymous media should not expose author text in API responses or previews.
+- Non-anonymous media can expose the Telegram username in previews as `by @username`.
+- Existing Unsplash demo covers stay in seed data as service-linked media until real uploads replace them.
 
 ### Review
 
@@ -263,6 +273,12 @@ Initial route handlers:
 
 - `GET /api/media/[id]`
   - returns one media preview item
+
+- `POST /api/media`
+  - accepts `multipart/form-data` with a photo/video file
+  - stores the uploaded file under `public/uploads/media`
+  - creates a standalone `Media` row
+  - supports `isAnonymous`; author user is only returned when media is non-anonymous
 
 - `POST /api/services/[id]/recommend`
   - toggles recommendation for current user

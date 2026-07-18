@@ -3,18 +3,46 @@
 import { ArrowLeft, ImageIcon, Play } from "lucide-react";
 import NextImage from "next/image";
 import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
-import { useTikep } from "@/components/app-provider";
-import { getServiceMedia } from "@/lib/service-utils";
+
+type MediaPreview = {
+  id: string;
+  type: "PHOTO" | "VIDEO";
+  url: string;
+  thumbnailUrl: string | null;
+  altText: string;
+  isAnonymous: boolean;
+  authorUser: {
+    username: string | null;
+    firstName: string | null;
+    lastName: string | null;
+  } | null;
+};
+
+function getDisplayUsername(user: NonNullable<MediaPreview["authorUser"]>) {
+  if (user.username) {
+    return `@${user.username}`;
+  }
+
+  return [user.firstName, user.lastName].filter(Boolean).join(" ") || "Tikep user";
+}
 
 export default function MediaPreviewPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { services } = useTikep();
-  const serviceIndex = services.findIndex((item) => item.id === params.id);
-  const service = serviceIndex >= 0 ? services[serviceIndex] : null;
+  const [media, setMedia] = useState<MediaPreview | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  if (!service) {
+  useEffect(() => {
+    fetch(`/api/media/${params.id}`)
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Media not found"))))
+      .then((data: { media: MediaPreview }) => setMedia(data.media))
+      .catch(() => setMedia(null))
+      .finally(() => setIsLoading(false));
+  }, [params.id]);
+
+  if (!media && !isLoading) {
     return (
       <div className="p-4">
         <button
@@ -30,8 +58,9 @@ export default function MediaPreviewPage() {
     );
   }
 
-  const media = getServiceMedia(service.id, serviceIndex);
-  const isVideo = media.type === "video";
+  const isVideo = media?.type === "VIDEO";
+  const showVideoElement = isVideo && !media?.thumbnailUrl;
+  const authorLabel = media?.authorUser ? getDisplayUsername(media.authorUser) : "";
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -45,19 +74,32 @@ export default function MediaPreviewPage() {
       </header>
 
       <main className="relative min-h-screen">
-        <NextImage
-          src={media.cover}
-          alt={media.title}
-          fill
-          priority
-          sizes="(max-width: 640px) 100vw, 448px"
-          className="object-cover"
-        />
+        {media ? (
+          showVideoElement ? (
+            <video src={media.url} className="h-screen w-full object-contain" controls autoPlay muted playsInline />
+          ) : (
+            <NextImage
+              src={media.thumbnailUrl ?? media.url}
+              alt={media.altText}
+              fill
+              priority
+              sizes="(max-width: 640px) 100vw, 448px"
+              className="object-contain"
+            />
+          )
+        ) : (
+          <div className="h-screen w-full animate-pulse bg-gray-950" />
+        )}
         {isVideo ? (
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/25 backdrop-blur">
               <Play className="ml-1 h-8 w-8 fill-white text-white" />
             </div>
+          </div>
+        ) : null}
+        {authorLabel ? (
+          <div className="absolute bottom-5 left-4 rounded-full bg-black/45 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
+            by {authorLabel}
           </div>
         ) : null}
       </main>

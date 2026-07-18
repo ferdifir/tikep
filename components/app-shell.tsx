@@ -36,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
           {pathname === "/explore" ? (
             <Link
-              href="/post"
+              href="/media/new"
               aria-label="Tambah showcase"
               title="Tambah showcase"
               className="rounded-full p-2 text-gray-700 transition hover:bg-gray-100"
