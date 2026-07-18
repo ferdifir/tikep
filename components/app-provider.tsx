@@ -154,7 +154,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (!response.ok) {
-          throw new Error("Gagal menambahkan layanan.");
+          const data = (await response.json().catch(() => ({}))) as { error?: string };
+          throw new Error(data.error ?? "Gagal menambahkan layanan.");
         }
 
         const data = (await response.json()) as { service: Service };
@@ -177,7 +178,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (!response.ok) {
-          throw new Error("Gagal menambahkan kategori.");
+          const data = (await response.json().catch(() => ({}))) as { error?: string };
+          throw new Error(data.error ?? "Gagal menambahkan kategori.");
         }
 
         const data = (await response.json()) as { category: { name: string } };

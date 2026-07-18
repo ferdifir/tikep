@@ -13,6 +13,10 @@ type TelegramUpdate = {
     };
     from?: {
       id: number | string;
+      username?: string;
+      first_name?: string;
+      last_name?: string;
+      language_code?: string;
     };
   };
 };
@@ -36,6 +40,38 @@ function helpText() {
     "/withdraw_paid <id> - tandai pencairan berhasil",
     "/withdraw_reject <id> - tolak pencairan dan kembalikan saldo",
   ].join("\n");
+}
+
+async function bindBotUser(update: TelegramUpdate) {
+  const from = update.message?.from;
+  const chatId = update.message?.chat.id;
+
+  if (!from || !chatId) {
+    return null;
+  }
+
+  return prisma.user.upsert({
+    where: {
+      telegramId: String(from.id),
+    },
+    update: {
+      telegramChatId: String(chatId),
+      botStartedAt: new Date(),
+      username: from.username,
+      firstName: from.first_name,
+      lastName: from.last_name,
+      languageCode: from.language_code,
+    },
+    create: {
+      telegramId: String(from.id),
+      telegramChatId: String(chatId),
+      botStartedAt: new Date(),
+      username: from.username,
+      firstName: from.first_name,
+      lastName: from.last_name,
+      languageCode: from.language_code,
+    },
+  });
 }
 
 async function listPendingWithdraws() {
@@ -286,6 +322,21 @@ export async function POST(request: Request) {
 
   if (!chatId || !text) {
     return NextResponse.json({ ok: true });
+  }
+
+  const [rawCommand] = normalizeCommand(text).split(" ");
+  const command = rawCommand.split("@")[0];
+
+  if (command === "/start") {
+    await bindBotUser(update);
+
+    if (!isAuthorizedDeveloper(update)) {
+      await sendTelegramMessage({
+        chatId: String(chatId),
+        text: "Akun Telegram kamu sudah terhubung ke Tikep. Sekarang kamu bisa kembali ke Mini App.",
+      });
+      return NextResponse.json({ ok: true });
+    }
   }
 
   if (!isAuthorizedDeveloper(update)) {

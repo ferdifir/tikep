@@ -20,9 +20,14 @@ function slugify(value: string) {
 async function main() {
   const demoUser = await prisma.user.upsert({
     where: { telegramId: "demo-tikep-user" },
-    update: {},
+    update: {
+      telegramChatId: "demo-tikep-chat",
+      botStartedAt: new Date(),
+    },
     create: {
       telegramId: "demo-tikep-user",
+      telegramChatId: "demo-tikep-chat",
+      botStartedAt: new Date(),
       username: "tikep_demo",
       firstName: "Tikep",
       lastName: "Studio",

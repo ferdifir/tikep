@@ -46,6 +46,20 @@ export async function POST(request: Request) {
     return user;
   }
 
+  if (!user.botStartedAt || !user.telegramChatId) {
+    return NextResponse.json(
+      { error: "Hubungkan bot Tikep terlebih dahulu sebelum membuat layanan." },
+      { status: 403 },
+    );
+  }
+
+  if (!user.username) {
+    return NextResponse.json(
+      { error: "Username Telegram wajib diatur sebelum membuat layanan agar customer bisa menghubungi provider." },
+      { status: 403 },
+    );
+  }
+
   const coverFile = form.get("coverFile");
   const title = typeof form.get("title") === "string" ? String(form.get("title")).trim() : "";
   const providerName = typeof form.get("provider") === "string" ? String(form.get("provider")).trim() : "";

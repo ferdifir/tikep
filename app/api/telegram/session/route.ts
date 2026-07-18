@@ -57,6 +57,8 @@ export async function POST(request: Request) {
         firstName: user.firstName,
         lastName: user.lastName,
         photoUrl: user.photoUrl,
+        telegramChatId: user.telegramChatId,
+        botStartedAt: user.botStartedAt?.toISOString() ?? null,
       },
     });
   } catch {

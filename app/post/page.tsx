@@ -1,9 +1,10 @@
 "use client";
 
-import { CheckCircle2, PlusCircle } from "lucide-react";
+import { CheckCircle2, MessageCircle, PlusCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTikep } from "@/components/app-provider";
+import { getMiniAppUrlForCurrentPath } from "@/lib/telegram-webapp";
 import type { ServiceCategory } from "@/lib/types";
 
 export default function PostPage() {
@@ -22,9 +23,12 @@ export default function PostPage() {
   const [coverPreviewUrl, setCoverPreviewUrl] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [botLink, setBotLink] = useState("");
   const coverPreviewUrlRef = useRef("");
 
   useEffect(() => {
+    queueMicrotask(() => setBotLink(getMiniAppUrlForCurrentPath().replace("startapp=home", "start=bind_provider")));
+
     return () => {
       if (coverPreviewUrlRef.current) {
         URL.revokeObjectURL(coverPreviewUrlRef.current);
@@ -98,8 +102,8 @@ export default function PostPage() {
       setPrice("199000");
       setDescription("");
       replaceCoverFile(null);
-    } catch {
-      setError("Layanan gagal ditambahkan.");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "Layanan gagal ditambahkan.");
     }
   }
 
@@ -115,8 +119,8 @@ export default function PostPage() {
       const createdCategory = await addCategory(name);
       setCategory(createdCategory);
       setCustomCategory("");
-    } catch {
-      setError("Kategori gagal ditambahkan atau sudah ada.");
+    } catch (categoryError) {
+      setError(categoryError instanceof Error ? categoryError.message : "Kategori gagal ditambahkan atau sudah ada.");
     }
   }
 
@@ -138,6 +142,22 @@ export default function PostPage() {
             <div>
               <h1 className="text-base font-bold text-gray-900">Buat layanan</h1>
               <p className="text-xs leading-5 text-gray-500">Post baru akan muncul di feed dan profil.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-indigo-100 bg-indigo-50 p-3">
+          <div className="flex items-start gap-2">
+            <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" />
+            <div className="space-y-2">
+              <p className="text-xs font-semibold leading-5 text-indigo-900">
+                Provider wajib sudah start bot Tikep dan punya username Telegram agar notifikasi pesanan bisa dikirim dan customer bisa menghubungi kamu.
+              </p>
+              {botLink ? (
+                <a href={botLink} className="inline-flex text-xs font-bold text-indigo-700">
+                  Hubungkan bot
+                </a>
+              ) : null}
             </div>
           </div>
         </section>
