@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendTelegramMessage } from "@/lib/telegram-bot";
+import { answerTelegramCallbackQuery, sendTelegramMessage } from "@/lib/telegram-bot";
 import { formatRupiah } from "@/lib/withdraw-methods";
 
 export const runtime = "nodejs";
@@ -19,6 +19,18 @@ type TelegramUpdate = {
       language_code?: string;
     };
   };
+  callback_query?: {
+    id: string;
+    data?: string;
+    from: {
+      id: number | string;
+    };
+    message?: {
+      chat: {
+        id: number | string;
+      };
+    };
+  };
 };
 
 const developerChatId = process.env.TELEGRAM_DEVELOPER_CHAT_ID ?? "7764382006";
@@ -29,6 +41,15 @@ function normalizeCommand(text: string) {
 
 function isAuthorizedDeveloper(update: TelegramUpdate) {
   return String(update.message?.from?.id ?? "") === String(developerChatId);
+}
+
+function getUserLabel(user: {
+  username: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  telegramId: string | null;
+}) {
+  return user.username ? `@${user.username}` : [user.firstName, user.lastName].filter(Boolean).join(" ") || user.telegramId || "User Tikep";
 }
 
 function helpText() {
@@ -309,6 +330,100 @@ async function handleAdminCommand(text: string) {
   return helpText();
 }
 
+async function handleInquiryCallback(update: TelegramUpdate) {
+  const callback = update.callback_query;
+  const data = callback?.data ?? "";
+
+  if (!callback || (!data.startsWith("inquiry_accept:") && !data.startsWith("inquiry_reject:"))) {
+    return false;
+  }
+
+  const action = data.startsWith("inquiry_accept:") ? "ACCEPTED" : "REJECTED";
+  const inquiryId = data.split(":")[1];
+  const inquiry = await prisma.serviceInquiry.findUnique({
+    where: { id: inquiryId },
+    include: {
+      service: true,
+      provider: {
+        include: {
+          owner: true,
+        },
+      },
+      customerUser: true,
+    },
+  });
+
+  if (!inquiry) {
+    await answerTelegramCallbackQuery({
+      callbackQueryId: callback.id,
+      text: "Inquiry tidak ditemukan.",
+      showAlert: true,
+    });
+    return true;
+  }
+
+  if (String(inquiry.provider.owner?.telegramId ?? "") !== String(callback.from.id)) {
+    await answerTelegramCallbackQuery({
+      callbackQueryId: callback.id,
+      text: "Inquiry ini bukan milik kamu.",
+      showAlert: true,
+    });
+    return true;
+  }
+
+  if (inquiry.status !== "REQUESTED") {
+    await answerTelegramCallbackQuery({
+      callbackQueryId: callback.id,
+      text: `Inquiry sudah berstatus ${inquiry.status}.`,
+      showAlert: true,
+    });
+    return true;
+  }
+
+  const updatedInquiry = await prisma.serviceInquiry.update({
+    where: { id: inquiry.id },
+    data: {
+      status: action,
+      providerRespondedAt: new Date(),
+      customerNotifiedAt: inquiry.customerUser.telegramChatId ? new Date() : null,
+    },
+  });
+
+  if (inquiry.customerUser.telegramChatId) {
+    const providerUsername = inquiry.provider.owner?.username;
+    const acceptedText = providerUsername
+      ? [
+          `Provider menerima permintaan kamu untuk ${inquiry.service.title}.`,
+          `Hubungi provider: @${providerUsername}`,
+          `https://t.me/${providerUsername}`,
+        ].join("\n")
+      : `Provider menerima permintaan kamu untuk ${inquiry.service.title}.`;
+    const rejectedText = `Provider belum bisa menerima permintaan kamu untuk ${inquiry.service.title}.`;
+
+    await sendTelegramMessage({
+      chatId: inquiry.customerUser.telegramChatId,
+      text: action === "ACCEPTED" ? acceptedText : rejectedText,
+    });
+  }
+
+  await answerTelegramCallbackQuery({
+    callbackQueryId: callback.id,
+    text: action === "ACCEPTED" ? "Permintaan diterima." : "Permintaan ditolak.",
+  });
+
+  if (callback.message?.chat.id) {
+    await sendTelegramMessage({
+      chatId: String(callback.message.chat.id),
+      text:
+        updatedInquiry.status === "ACCEPTED"
+          ? `Kamu menerima permintaan ${getUserLabel(inquiry.customerUser)} untuk ${inquiry.service.title}.`
+          : `Kamu menolak permintaan ${getUserLabel(inquiry.customerUser)} untuk ${inquiry.service.title}.`,
+    });
+  }
+
+  return true;
+}
+
 export async function POST(request: Request) {
   const webhookSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
 
@@ -317,6 +432,11 @@ export async function POST(request: Request) {
   }
 
   const update = (await request.json().catch(() => ({}))) as TelegramUpdate;
+
+  if (await handleInquiryCallback(update)) {
+    return NextResponse.json({ ok: true });
+  }
+
   const chatId = update.message?.chat.id;
   const text = update.message?.text;
 

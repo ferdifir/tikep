@@ -4,9 +4,10 @@ import { ArrowLeft, Copy, Flag, Heart, Layers, LinkIcon, MessageCircle, PenLine,
 import Link from "next/link";
 import NextImage from "next/image";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { useTikep } from "@/components/app-provider";
+import { ServiceInquiryButton } from "@/components/service-inquiry-button";
 import { formatCurrency } from "@/lib/format";
 import { shareService } from "@/lib/share-links";
 import { getLatestReviews, getProviderSlug, getRatingCircleStyle } from "@/lib/service-utils";
@@ -20,6 +21,14 @@ const iconMap: IconMap = {
   workflow: Workflow,
 };
 
+type ReviewInviteInquiry = {
+  id: string;
+  status: string;
+  customerLabel: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export default function ServicePreviewPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -28,7 +37,28 @@ export default function ServicePreviewPage() {
   const [inviteLink, setInviteLink] = useState("");
   const [inviteStatus, setInviteStatus] = useState("");
   const [inviteError, setInviteError] = useState("");
+  const [reviewInquiries, setReviewInquiries] = useState<ReviewInviteInquiry[]>([]);
+  const [selectedInquiryId, setSelectedInquiryId] = useState("");
   const [shareStatus, setShareStatus] = useState("");
+
+  useEffect(() => {
+    if (!service || service.owner !== "me") {
+      return;
+    }
+
+    const initData = getTelegramInitData();
+    const url = initData
+      ? `/api/services/${service.id}/review-invites?initData=${encodeURIComponent(initData)}`
+      : `/api/services/${service.id}/review-invites`;
+
+    fetch(url)
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Failed to load inquiries"))))
+      .then((data: { inquiries: ReviewInviteInquiry[] }) => {
+        setReviewInquiries(data.inquiries);
+        setSelectedInquiryId((current) => current || data.inquiries[0]?.id || "");
+      })
+      .catch(() => setReviewInquiries([]));
+  }, [service]);
 
   if (!service) {
     return (
@@ -52,7 +82,7 @@ export default function ServicePreviewPage() {
   const reviews = getLatestReviews(service.reviews);
 
   async function handleCreateReviewInvite() {
-    if (!service) {
+    if (!service || !selectedInquiryId) {
       return;
     }
 
@@ -64,7 +94,7 @@ export default function ServicePreviewPage() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ initData: getTelegramInitData() }),
+      body: JSON.stringify({ initData: getTelegramInitData(), inquiryId: selectedInquiryId }),
     });
 
     if (!response.ok) {
@@ -80,7 +110,7 @@ export default function ServicePreviewPage() {
       };
     };
     setInviteLink(data.invite.telegramUrl ?? data.invite.reviewUrl);
-    setInviteStatus("Link review dibuat. Bagikan ke customer untuk membuka form review terverifikasi.");
+    setInviteStatus("Invite review dikirim ke customer melalui bot.");
   }
 
   async function handleShareService() {
@@ -177,6 +207,8 @@ export default function ServicePreviewPage() {
           </div>
           <p className="text-sm leading-6 text-gray-600">{service.description}</p>
 
+          <ServiceInquiryButton service={service} />
+
           <div className="grid grid-cols-3 items-center border-y border-gray-100 py-3">
             <button
               type="button"
@@ -214,14 +246,35 @@ export default function ServicePreviewPage() {
                 <MessageCircle className="h-4 w-4 text-indigo-600" />
                 <h2 className="text-sm font-bold text-gray-900">Invite review customer</h2>
               </div>
+              {reviewInquiries.length ? (
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wide text-indigo-700">Customer</span>
+                  <select
+                    value={selectedInquiryId}
+                    onChange={(event) => setSelectedInquiryId(event.target.value)}
+                    className="h-10 w-full rounded-lg border border-indigo-100 bg-white px-3 text-xs font-semibold text-gray-700 outline-none"
+                  >
+                    {reviewInquiries.map((inquiry) => (
+                      <option key={inquiry.id} value={inquiry.id}>
+                        {inquiry.customerLabel} - {inquiry.status}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <p className="text-xs font-semibold leading-5 text-indigo-700">
+                  Belum ada customer yang diterima dari tombol Pesan.
+                </p>
+              )}
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={handleCreateReviewInvite}
+                  disabled={!selectedInquiryId}
                   className="flex h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white transition hover:bg-indigo-700"
                 >
                   <LinkIcon className="h-4 w-4" />
-                  Buat link
+                  Kirim invite
                 </button>
                 <button
                   type="button"

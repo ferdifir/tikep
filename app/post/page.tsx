@@ -4,7 +4,7 @@ import { CheckCircle2, MessageCircle, PlusCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTikep } from "@/components/app-provider";
-import { getMiniAppUrlForCurrentPath } from "@/lib/telegram-webapp";
+import { getBotStartUrl } from "@/lib/telegram-webapp";
 import type { ServiceCategory } from "@/lib/types";
 
 export default function PostPage() {
@@ -27,7 +27,7 @@ export default function PostPage() {
   const coverPreviewUrlRef = useRef("");
 
   useEffect(() => {
-    queueMicrotask(() => setBotLink(getMiniAppUrlForCurrentPath().replace("startapp=home", "start=bind_provider")));
+    queueMicrotask(() => setBotLink(getBotStartUrl("bind_provider")));
 
     return () => {
       if (coverPreviewUrlRef.current) {

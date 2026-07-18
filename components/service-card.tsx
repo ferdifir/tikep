@@ -4,6 +4,7 @@ import { Flag, Heart, Layers, PenLine, Share2, Star, ThumbsDown, ThumbsUp, Trend
 import Link from "next/link";
 import NextImage from "next/image";
 import { useState } from "react";
+import { ServiceInquiryButton } from "@/components/service-inquiry-button";
 import { formatCurrency } from "@/lib/format";
 import { shareService } from "@/lib/share-links";
 import { getLatestReviews, getProviderSlug, getRatingBorderStyle, getRatingTone } from "@/lib/service-utils";
@@ -110,6 +111,8 @@ export function ServiceCard({ service }: { service: Service }) {
             </div>
           ))}
         </div>
+
+        {service.owner === "me" ? null : <ServiceInquiryButton service={service} />}
 
         <div className="grid grid-cols-3 items-center border-t border-gray-100 pt-2">
           <button

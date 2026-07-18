@@ -57,3 +57,13 @@ export function getMiniAppUrlForCurrentPath() {
 
   return startParam ? `${baseUrl}?startapp=${encodeURIComponent(startParam)}` : `${baseUrl}?startapp=home`;
 }
+
+export function getBotStartUrl(payload = "bind") {
+  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.replace(/^@/, "");
+
+  if (!botUsername) {
+    return "";
+  }
+
+  return `https://t.me/${botUsername}?start=${encodeURIComponent(payload)}`;
+}

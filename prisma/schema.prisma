@@ -20,6 +20,7 @@ model User {
   providers        Provider[]
   categories       Category[]
   reviews          Review[]
+  inquiriesMade    ServiceInquiry[]  @relation("InquiryCustomer")
   recommendations  Recommendation[]
   reports          Report[]
   media            Media[]
@@ -35,10 +36,10 @@ model User {
 }
 
 model Provider {
-  id          String       @id @default(cuid())
+  id          String           @id @default(cuid())
   ownerUserId String?
-  owner       User?        @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
-  slug        String       @unique
+  owner       User?            @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+  slug        String           @unique
   name        String
   bio         String
   avatar      String
@@ -47,8 +48,9 @@ model Provider {
   services    Service[]
   media       Media[]
   reviewCodes ReviewCode[]
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  inquiries   ServiceInquiry[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 }
 
 model Category {
@@ -84,6 +86,7 @@ model Service {
   media           Media[]
   reviews         Review[]
   reviewCodes     ReviewCode[]
+  inquiries       ServiceInquiry[]
   recommendations Recommendation[]
   reports         Report[]
   createdAt       DateTime         @default(now())
@@ -127,23 +130,45 @@ model Review {
 }
 
 model ReviewCode {
-  id              String    @id @default(cuid())
+  id              String          @id @default(cuid())
   serviceId       String
-  service         Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  service         Service         @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   providerId      String
-  provider        Provider  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  provider        Provider        @relation(fields: [providerId], references: [id], onDelete: Cascade)
   createdByUserId String
-  createdByUser   User      @relation("ReviewCodeCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  createdByUser   User            @relation("ReviewCodeCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
   usedByUserId    String?
-  usedByUser      User?     @relation("ReviewCodeUser", fields: [usedByUserId], references: [id], onDelete: SetNull)
-  codeHash        String    @unique
-  status          String    @default("ACTIVE")
+  usedByUser      User?           @relation("ReviewCodeUser", fields: [usedByUserId], references: [id], onDelete: SetNull)
+  codeHash        String          @unique
+  status          String          @default("ACTIVE")
   customerChatId  String?
+  inquiryId       String?
+  inquiry         ServiceInquiry? @relation(fields: [inquiryId], references: [id], onDelete: SetNull)
   sentAt          DateTime?
   usedAt          DateTime?
   expiresAt       DateTime
   review          Review?
-  createdAt       DateTime  @default(now())
+  createdAt       DateTime        @default(now())
+}
+
+model ServiceInquiry {
+  id                  String       @id @default(cuid())
+  serviceId           String
+  service             Service      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  providerId          String
+  provider            Provider     @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  customerUserId      String
+  customerUser        User         @relation("InquiryCustomer", fields: [customerUserId], references: [id], onDelete: Cascade)
+  status              String       @default("REQUESTED")
+  message             String?
+  providerMessageId   Int?
+  customerNotifiedAt  DateTime?
+  providerRespondedAt DateTime?
+  reviewCodes         ReviewCode[]
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@unique([serviceId, customerUserId])
 }
 
 model Recommendation {

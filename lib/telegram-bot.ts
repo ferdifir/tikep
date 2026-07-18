@@ -25,6 +25,35 @@ export async function sendTelegramMessage(input: {
     return { status: "failed" as const };
   }
 
+  const data = (await response.json().catch(() => ({}))) as { result?: { message_id?: number } };
+  return { status: "sent" as const, messageId: data.result?.message_id ?? null };
+}
+
+export async function answerTelegramCallbackQuery(input: {
+  callbackQueryId: string;
+  text?: string;
+  showAlert?: boolean;
+}) {
+  const botToken = process.env.TELEGRAM_BOT_TOKEN;
+
+  if (!botToken) {
+    return { status: "not_configured" as const };
+  }
+
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/answerCallbackQuery`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      callback_query_id: input.callbackQueryId,
+      text: input.text,
+      show_alert: input.showAlert,
+    }),
+  });
+
+  if (!response.ok) {
+    return { status: "failed" as const };
+  }
+
   return { status: "sent" as const };
 }
 

@@ -14,6 +14,7 @@ export async function POST() {
 
   await prisma.$transaction([
     prisma.reviewCode.deleteMany({}),
+    prisma.serviceInquiry.deleteMany({}),
     prisma.walletLedger.deleteMany({}),
     prisma.withdrawRequest.deleteMany({}),
     prisma.giftPayment.deleteMany({}),
