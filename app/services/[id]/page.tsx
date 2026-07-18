@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowLeft, Flag, Heart, Layers, LinkIcon, MessageCircle, PenLine, Send, ThumbsDown, ThumbsUp, TrendingUp, Workflow } from "lucide-react";
+import { ArrowLeft, Flag, Heart, Layers, LinkIcon, MessageCircle, PenLine, Send, Share2, ThumbsDown, ThumbsUp, TrendingUp, Workflow } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { useTikep } from "@/components/app-provider";
 import { formatCurrency } from "@/lib/format";
+import { shareService } from "@/lib/share-links";
 import { getLatestReviews, getProviderSlug, getRatingCircleStyle } from "@/lib/service-utils";
 import type { IconMap } from "@/lib/types";
 
@@ -26,6 +27,7 @@ export default function ServicePreviewPage() {
   const [inviteLink, setInviteLink] = useState("");
   const [inviteStatus, setInviteStatus] = useState("");
   const [inviteError, setInviteError] = useState("");
+  const [shareStatus, setShareStatus] = useState("");
 
   if (!service) {
     return (
@@ -90,6 +92,20 @@ export default function ServicePreviewPage() {
     );
   }
 
+  async function handleShareService() {
+    if (!service) {
+      return;
+    }
+
+    try {
+      await shareService({ id: service.id, title: service.title });
+      setShareStatus("Link disalin");
+      window.setTimeout(() => setShareStatus(""), 1800);
+    } catch {
+      setShareStatus("");
+    }
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <header className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
@@ -136,7 +152,7 @@ export default function ServicePreviewPage() {
           </div>
           <p className="text-sm leading-6 text-gray-600">{service.description}</p>
 
-          <div className="flex items-center justify-between border-y border-gray-100 py-3">
+          <div className="grid grid-cols-3 items-center border-y border-gray-100 py-3">
             <button
               type="button"
               onClick={() => toggleRecommendation(service.id)}
@@ -149,8 +165,16 @@ export default function ServicePreviewPage() {
             </button>
             <button
               type="button"
+              onClick={handleShareService}
+              className="flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500 transition hover:text-indigo-600"
+            >
+              <Share2 className="h-4 w-4" />
+              <span>{shareStatus || "Share"}</span>
+            </button>
+            <button
+              type="button"
               onClick={() => reportService(service.id)}
-              className={`flex items-center gap-1.5 text-xs font-semibold transition ${
+              className={`flex items-center justify-end gap-1.5 text-xs font-semibold transition ${
                 reported ? "text-rose-600" : "text-gray-400 hover:text-rose-600"
               }`}
             >

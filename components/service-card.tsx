@@ -1,8 +1,10 @@
 "use client";
 
-import { Flag, Heart, Layers, PenLine, Star, ThumbsDown, ThumbsUp, TrendingUp, Workflow } from "lucide-react";
+import { Flag, Heart, Layers, PenLine, Share2, Star, ThumbsDown, ThumbsUp, TrendingUp, Workflow } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { formatCurrency } from "@/lib/format";
+import { shareService } from "@/lib/share-links";
 import { getLatestReviews, getProviderSlug, getRatingBorderStyle, getRatingTone } from "@/lib/service-utils";
 import type { IconMap, Service } from "@/lib/types";
 import { useTikep } from "@/components/app-provider";
@@ -20,6 +22,17 @@ export function ServiceCard({ service }: { service: Service }) {
   const reported = reportedIds.includes(service.id);
   const PreviewIcon = iconMap[service.iconName] ?? Layers;
   const latestReviews = getLatestReviews(service.reviews, 2);
+  const [shareStatus, setShareStatus] = useState("");
+
+  async function handleShare() {
+    try {
+      await shareService({ id: service.id, title: service.title });
+      setShareStatus("Link disalin");
+      window.setTimeout(() => setShareStatus(""), 1800);
+    } catch {
+      setShareStatus("");
+    }
+  }
 
   return (
     <article className="rounded-2xl p-[2px] shadow-sm" style={getRatingBorderStyle(service.rating)}>
@@ -85,7 +98,7 @@ export function ServiceCard({ service }: { service: Service }) {
           ))}
         </div>
 
-        <div className="flex items-center justify-between border-t border-gray-100 pt-2">
+        <div className="grid grid-cols-3 items-center border-t border-gray-100 pt-2">
           <button
             type="button"
             onClick={() => toggleRecommendation(service.id)}
@@ -98,8 +111,16 @@ export function ServiceCard({ service }: { service: Service }) {
           </button>
           <button
             type="button"
+            onClick={handleShare}
+            className="flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500 transition hover:text-indigo-600"
+          >
+            <Share2 className="h-4 w-4" />
+            <span>{shareStatus || "Share"}</span>
+          </button>
+          <button
+            type="button"
             onClick={() => reportService(service.id)}
-            className={`flex items-center gap-1.5 text-xs font-semibold transition ${
+            className={`flex items-center justify-end gap-1.5 text-xs font-semibold transition ${
               reported ? "text-rose-600" : "text-gray-400 hover:text-rose-600"
             }`}
           >

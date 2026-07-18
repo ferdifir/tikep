@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AppProvider } from "@/components/app-provider";
 import { AppShell } from "@/components/app-shell";
+import { TelegramStartRouter } from "@/components/telegram-start-router";
 
 export const metadata: Metadata = {
   title: "Tikep - Katalog Layanan Digital",
@@ -22,6 +23,7 @@ export default function RootLayout({
     <html lang="id">
       <body>
         <AppProvider>
+          <TelegramStartRouter />
           <AppShell>{children}</AppShell>
         </AppProvider>
       </body>
