@@ -1,0 +1,280 @@
+# Tikep Database and Telegram Mini App Design
+
+Date: 2026-07-18
+
+## Goal
+
+Move Tikep from demo-only `localStorage` state to a server-backed data model using SQLite, while preparing the app to run as a Telegram Mini App. The first database implementation should stay simple enough for local development, but keep clear migration paths to Postgres or another hosted database later.
+
+## Recommended Stack
+
+- Database: SQLite
+- ORM: Prisma
+- API surface: Next.js App Router route handlers under `app/api`
+- Auth identity: Telegram Mini App `initData`, validated on the server
+- Local database file: `prisma/dev.db`
+- Generated client: Prisma Client
+
+Prisma is the recommended first step because it gives typed models, migrations, seed scripts, and a clean upgrade path if the project later moves from SQLite to Postgres.
+
+## Data Model
+
+### User
+
+Represents a Telegram-backed user account.
+
+Fields:
+- `id`: internal UUID or cuid
+- `telegramId`: unique Telegram user ID
+- `username`
+- `firstName`
+- `lastName`
+- `photoUrl`
+- `languageCode`
+- `createdAt`
+- `updatedAt`
+
+Relations:
+- one user can own one or more providers
+- one user can write reviews
+- one user can recommend services
+- one user can report services
+
+### Provider
+
+Represents a seller, studio, or creator profile.
+
+Fields:
+- `id`
+- `ownerUserId`
+- `slug`
+- `name`
+- `bio`
+- `avatar`
+- `avatarTone`
+- `createdAt`
+- `updatedAt`
+
+Relations:
+- belongs to a user when claimed
+- has many services
+- has many media items through services or direct showcase posts
+
+### Service
+
+Represents a product or service listing.
+
+Fields:
+- `id`
+- `providerId`
+- `title`
+- `category`
+- `price`
+- `ratingSnapshot`
+- `description`
+- `iconName`
+- `previewLabel`
+- `createdAt`
+- `updatedAt`
+
+Relations:
+- belongs to provider
+- has many reviews
+- has many media items
+- has many recommendations
+- has many reports
+
+`ratingSnapshot` is denormalized for fast feed rendering. It can be recalculated when reviews change.
+
+### Media
+
+Represents photo/video showcase content.
+
+Fields:
+- `id`
+- `providerId`
+- `serviceId` nullable
+- `type`: `PHOTO` or `VIDEO`
+- `url`
+- `thumbnailUrl`
+- `altText`
+- `sortOrder`
+- `createdAt`
+
+Relations:
+- belongs to provider
+- optionally belongs to a service
+
+Explore should read from this table. Existing Unsplash demo covers can be moved into seed data until uploads are implemented.
+
+### Review
+
+Represents one user review for a service.
+
+Fields:
+- `id`
+- `serviceId`
+- `authorUserId`
+- `sentiment`: `POSITIVE` or `NEGATIVE`
+- `text`
+- `createdAt`
+
+Rules:
+- A service can have any mix of review sentiments.
+- Cards show the two newest reviews by `createdAt`.
+- Detail screens show all reviews newest first.
+
+### Recommendation
+
+Represents a user recommending a service.
+
+Fields:
+- `id`
+- `serviceId`
+- `userId`
+- `createdAt`
+
+Constraint:
+- unique pair of `serviceId` and `userId`
+
+### Report
+
+Represents a user report against a service.
+
+Fields:
+- `id`
+- `serviceId`
+- `userId`
+- `reason` nullable
+- `createdAt`
+
+Constraint:
+- unique pair of `serviceId` and `userId`
+
+### TelegramSession
+
+Stores a validated Telegram Mini App session.
+
+Fields:
+- `id`
+- `userId`
+- `queryId`
+- `authDate`
+- `hash`
+- `rawInitData`
+- `createdAt`
+- `expiresAt`
+
+This table is optional for a simple first version, but useful for debugging and session expiry.
+
+## API Design
+
+Initial route handlers:
+
+- `POST /api/telegram/session`
+  - accepts raw `initData`
+  - validates it with the bot token
+  - upserts the Telegram user
+  - returns the current user profile
+
+- `GET /api/services`
+  - returns feed services with provider, two newest reviews, recommendation/report state for current user
+
+- `GET /api/services/[id]`
+  - returns service detail with provider, media, and all reviews
+
+- `POST /api/services`
+  - creates a new service for the current user's provider
+
+- `GET /api/providers/[slug]`
+  - returns provider profile, services, media, and latest reviews
+
+- `GET /api/media`
+  - returns media feed for Explore
+
+- `GET /api/media/[id]`
+  - returns one media preview item
+
+- `POST /api/services/[id]/recommend`
+  - toggles recommendation for current user
+
+- `POST /api/services/[id]/report`
+  - creates a report for current user
+
+## Telegram Mini App Flow
+
+1. Load Telegram Web App script in the document head.
+2. Client reads `window.Telegram.WebApp.initData`.
+3. Client sends raw `initData` to `POST /api/telegram/session`.
+4. Server validates `initData` using `TELEGRAM_BOT_TOKEN`.
+5. Server upserts user data from the validated payload.
+6. UI uses the returned user and fetches personalized service/media data.
+
+Important security rule: never trust `initDataUnsafe` for server-side decisions. The raw `initData` must be validated on the backend before using Telegram user data.
+
+## Validation Algorithm
+
+Server validation follows Telegram's Mini App data validation flow:
+
+1. Parse `initData` as query string parameters.
+2. Remove the `hash` field.
+3. Sort remaining key-value pairs alphabetically.
+4. Join pairs with newline characters to create `data_check_string`.
+5. Derive the secret key from the bot token as documented by Telegram.
+6. Compute HMAC-SHA256 and compare with the supplied `hash` using timing-safe comparison.
+7. Reject stale sessions using `auth_date`.
+
+`TELEGRAM_BOT_TOKEN` must only exist on the server, never in client code.
+
+## Environment Variables
+
+- `DATABASE_URL="file:./dev.db"`
+- `TELEGRAM_BOT_TOKEN`
+- `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` optional
+
+## Migration Plan
+
+### Phase 1: Add Database Foundation
+
+- Install Prisma dependencies.
+- Add `prisma/schema.prisma`.
+- Add migration and seed script.
+- Seed current demo services, providers, media, and reviews.
+
+### Phase 2: Add Read APIs
+
+- Build read route handlers for services, service detail, providers, and media.
+- Keep existing UI behavior, but switch read data from `localStorage` to API responses.
+
+### Phase 3: Add Mutations
+
+- Replace local recommendation/report state with API mutations.
+- Replace post form local creation with `POST /api/services`.
+- Recalculate or update service `ratingSnapshot` when reviews change.
+
+### Phase 4: Add Telegram Session
+
+- Add Telegram Web App script.
+- Add client bootstrap for `initData`.
+- Add server validation and user upsert.
+- Gate mutations behind a validated Telegram user.
+
+### Phase 5: Mini App Polish
+
+- Use Telegram theme variables for colors where appropriate.
+- Call `Telegram.WebApp.ready()` after initial render.
+- Call `Telegram.WebApp.expand()` for the app shell.
+- Respect viewport and safe area values for bottom navigation.
+
+## Open Decisions
+
+- Upload storage is not designed yet. SQLite stores URLs and metadata only.
+- Provider claiming rules can start simple: one provider per Telegram user.
+- Payments and Telegram Stars are out of scope for this design.
+- Moderation workflow for reports is out of scope for the first database pass.
+
+## References
+
+- Telegram Mini Apps documentation: https://core.telegram.org/bots/webapps
+- Next.js App Router route handlers: https://nextjs.org/docs/app/getting-started/route-handlers
+- Prisma SQLite documentation: https://www.prisma.io/docs/orm/overview/databases/sqlite
