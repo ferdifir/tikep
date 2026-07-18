@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Flag, Heart, Layers, LinkIcon, MessageCircle, PenLine, Send, Share2, ThumbsDown, ThumbsUp, TrendingUp, Workflow } from "lucide-react";
+import { ArrowLeft, Copy, Flag, Heart, Layers, LinkIcon, MessageCircle, PenLine, Share2, ThumbsDown, ThumbsUp, TrendingUp, Workflow } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -23,7 +23,6 @@ export default function ServicePreviewPage() {
   const router = useRouter();
   const { services, recommendedIds, reportedIds, toggleRecommendation, reportService } = useTikep();
   const service = services.find((item) => item.id === params.id);
-  const [customerChatId, setCustomerChatId] = useState("");
   const [inviteLink, setInviteLink] = useState("");
   const [inviteStatus, setInviteStatus] = useState("");
   const [inviteError, setInviteError] = useState("");
@@ -63,9 +62,7 @@ export default function ServicePreviewPage() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        customerChatId: customerChatId.trim() || undefined,
-      }),
+      body: JSON.stringify({}),
     });
 
     if (!response.ok) {
@@ -81,15 +78,7 @@ export default function ServicePreviewPage() {
       };
     };
     setInviteLink(data.invite.telegramUrl ?? data.invite.reviewUrl);
-    setInviteStatus(
-      data.invite.botMessageStatus === "sent"
-        ? "Bot sudah mengirim link review."
-        : data.invite.botMessageStatus === "not_configured"
-          ? "Link dibuat. Bot token belum dikonfigurasi untuk kirim otomatis."
-          : data.invite.botMessageStatus === "failed"
-            ? "Link dibuat, tapi bot gagal mengirim pesan."
-            : "Link review dibuat.",
-    );
+    setInviteStatus("Link review dibuat. Bagikan ke customer untuk membuka form review terverifikasi.");
   }
 
   async function handleShareService() {
@@ -103,6 +92,27 @@ export default function ServicePreviewPage() {
       window.setTimeout(() => setShareStatus(""), 1800);
     } catch {
       setShareStatus("");
+    }
+  }
+
+  async function handleShareReviewInvite() {
+    if (!inviteLink || !service) {
+      return;
+    }
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `Review ${service.title}`,
+          text: `Beri review terverifikasi untuk ${service.title}`,
+          url: inviteLink,
+        });
+      } else {
+        await navigator.clipboard.writeText(inviteLink);
+      }
+      setInviteStatus("Link review siap dibagikan.");
+    } catch {
+      setInviteStatus("");
     }
   }
 
@@ -189,21 +199,23 @@ export default function ServicePreviewPage() {
                 <MessageCircle className="h-4 w-4 text-indigo-600" />
                 <h2 className="text-sm font-bold text-gray-900">Invite review customer</h2>
               </div>
-              <div className="grid grid-cols-[1fr_auto] gap-2">
-                <input
-                  value={customerChatId}
-                  onChange={(event) => setCustomerChatId(event.target.value)}
-                  placeholder="Telegram chat_id customer"
-                  className="h-10 rounded-lg border border-indigo-100 bg-white px-3 text-xs outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                />
+              <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={handleCreateReviewInvite}
-                  className="flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-3 text-white transition hover:bg-indigo-700"
-                  aria-label="Kirim link review"
-                  title="Kirim link review"
+                  className="flex h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white transition hover:bg-indigo-700"
                 >
-                  <Send className="h-4 w-4" />
+                  <LinkIcon className="h-4 w-4" />
+                  Buat link
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShareReviewInvite}
+                  disabled={!inviteLink}
+                  className="flex h-10 items-center justify-center gap-2 rounded-lg border border-indigo-100 bg-white px-3 text-xs font-bold text-indigo-700 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-gray-300"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share
                 </button>
               </div>
               {inviteStatus ? <p className="text-xs font-semibold text-indigo-700">{inviteStatus}</p> : null}
@@ -215,7 +227,7 @@ export default function ServicePreviewPage() {
                   target="_blank"
                   rel="noreferrer"
                 >
-                  <LinkIcon className="h-4 w-4 shrink-0" />
+                  <Copy className="h-4 w-4 shrink-0" />
                   <span className="truncate">{inviteLink}</span>
                 </a>
               ) : null}

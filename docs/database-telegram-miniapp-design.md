@@ -183,6 +183,7 @@ Rules:
 - If `customerChatId` is provided, the backend asks the Telegram Bot API to send the review link to that customer.
 - If bot sending is not configured or fails, the provider still receives a shareable link.
 - Review links open the Telegram Mini App with `startapp=review_<code>` when `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` is configured, or `/review?code=<code>` as browser fallback.
+- The main provider UX should not ask for `chat_id` manually. Providers create a review link and share it through Telegram's share sheet or copy it manually. Direct bot sending remains an API capability for later flows where Tikep already knows the customer chat ID.
 
 ### Recommendation
 
@@ -299,8 +300,8 @@ Important security rule: never trust `initDataUnsafe` for server-side decisions.
 1. Provider opens one of their service previews.
 2. Provider taps the invite review action.
 3. Backend creates a one-time `ReviewCode`.
-4. If a Telegram `chat_id` is provided, backend calls Bot API `sendMessage` with an inline Mini App button.
-5. Customer opens the Mini App from that button or direct link.
+4. UI returns a Telegram Mini App review link and a browser fallback link.
+5. Provider shares the link to the customer using Telegram share or copy link.
 6. Mini App receives `startapp=review_<code>` or browser fallback `?code=<code>`.
 7. Customer submits review.
 8. Backend validates the code, validates Telegram `initData` when available, marks the code `USED`, and creates a `VERIFIED` review.
