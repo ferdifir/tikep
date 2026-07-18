@@ -167,7 +167,9 @@ export default function NewMediaPage() {
           <span>
             <span className="block text-sm font-bold text-gray-900">Share anonymous</span>
             <span className="block text-xs leading-5 text-gray-500">
-              Matikan jika ingin preview menampilkan by {authorLabel}.
+              {isAnonymous
+                ? "Nama kamu disembunyikan dan fitur gift tidak tersedia untuk media ini."
+                : `Preview menampilkan by ${authorLabel}, dan orang bisa mengirim gift QRIS.`}
             </span>
           </span>
           <input

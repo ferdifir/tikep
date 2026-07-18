@@ -27,6 +27,11 @@ function TelegramStartRouterInner() {
 
       if (startParam.startsWith("service_")) {
         router.replace(`/services/${startParam.slice("service_".length)}`);
+        return;
+      }
+
+      if (startParam.startsWith("media_")) {
+        router.replace(`/media/${startParam.slice("media_".length)}`);
       }
     });
   }, [router, searchParams]);

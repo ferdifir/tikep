@@ -21,6 +21,9 @@ model User {
   recommendations  Recommendation[]
   reports          Report[]
   media            Media[]
+  wallet           Wallet?
+  giftsSent        GiftPayment[]     @relation("GiftSender")
+  giftsReceived    GiftPayment[]     @relation("GiftRecipient")
   telegramSessions TelegramSession[]
   reviewCodesMade  ReviewCode[]      @relation("ReviewCodeCreator")
   reviewCodesUsed  ReviewCode[]      @relation("ReviewCodeUser")
@@ -85,21 +88,22 @@ model Service {
 }
 
 model Media {
-  id           String    @id @default(cuid())
+  id           String        @id @default(cuid())
   providerId   String?
-  provider     Provider? @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  provider     Provider?     @relation(fields: [providerId], references: [id], onDelete: Cascade)
   serviceId    String?
-  service      Service?  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  service      Service?      @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   authorUserId String?
-  authorUser   User?     @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
-  isAnonymous  Boolean   @default(true)
+  authorUser   User?         @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+  isAnonymous  Boolean       @default(true)
   caption      String?
   type         String
   url          String
   thumbnailUrl String?
   altText      String
-  sortOrder    Int       @default(0)
-  createdAt    DateTime  @default(now())
+  sortOrder    Int           @default(0)
+  createdAt    DateTime      @default(now())
+  giftPayments GiftPayment[]
 }
 
 model Review {
@@ -172,4 +176,69 @@ model TelegramSession {
   rawInitData String
   createdAt   DateTime @default(now())
   expiresAt   DateTime
+}
+
+model GiftPayment {
+  id              String         @id @default(cuid())
+  orderId         String         @unique
+  mediaId         String
+  media           Media          @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  senderUserId    String
+  senderUser      User           @relation("GiftSender", fields: [senderUserId], references: [id], onDelete: Cascade)
+  recipientUserId String
+  recipientUser   User           @relation("GiftRecipient", fields: [recipientUserId], references: [id], onDelete: Cascade)
+  amount          Int
+  fee             Int?
+  totalPayment    Int?
+  paymentMethod   String         @default("qris")
+  paymentNumber   String
+  qrImageDataUrl  String?
+  status          String         @default("PENDING")
+  completedAt     DateTime?
+  expiredAt       DateTime
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  ledgerEntries   WalletLedger[]
+}
+
+model Wallet {
+  id              String            @id @default(cuid())
+  userId          String            @unique
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance         Int               @default(0)
+  pendingWithdraw Int               @default(0)
+  totalEarned     Int               @default(0)
+  ledgerEntries   WalletLedger[]
+  withdraws       WithdrawRequest[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+}
+
+model WalletLedger {
+  id                String           @id @default(cuid())
+  walletId          String
+  wallet            Wallet           @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type              String
+  amount            Int
+  giftPaymentId     String?
+  giftPayment       GiftPayment?     @relation(fields: [giftPaymentId], references: [id], onDelete: SetNull)
+  withdrawRequestId String?
+  withdrawRequest   WithdrawRequest? @relation(fields: [withdrawRequestId], references: [id], onDelete: SetNull)
+  createdAt         DateTime         @default(now())
+}
+
+model WithdrawRequest {
+  id                  String         @id @default(cuid())
+  walletId            String
+  wallet              Wallet         @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  userId              String
+  amount              Int
+  payoutDetails       String
+  status              String         @default("PENDING")
+  developerNotifiedAt DateTime?
+  paidAt              DateTime?
+  rejectedAt          DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  ledgerEntries       WalletLedger[]
 }

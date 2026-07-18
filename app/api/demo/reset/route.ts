@@ -10,6 +10,9 @@ export async function POST() {
 
   await prisma.$transaction([
     prisma.reviewCode.deleteMany({}),
+    prisma.walletLedger.deleteMany({}),
+    prisma.withdrawRequest.deleteMany({}),
+    prisma.giftPayment.deleteMany({}),
     prisma.media.deleteMany({
       where: {
         serviceId: null,
@@ -25,6 +28,14 @@ export async function POST() {
     }),
     prisma.recommendation.deleteMany({ where: { userId: user.id } }),
     prisma.report.deleteMany({ where: { userId: user.id } }),
+    prisma.wallet.updateMany({
+      where: { userId: user.id },
+      data: {
+        balance: 0,
+        pendingWithdraw: 0,
+        totalEarned: 0,
+      },
+    }),
     prisma.service.deleteMany({
       where: {
         id: {

@@ -143,8 +143,86 @@ Rules:
 - The plus button in Explore creates standalone media, not a service/product listing.
 - Uploaded files are stored under `public/uploads/media` for the local SQLite version.
 - Anonymous media should not expose author text in API responses or previews.
-- Non-anonymous media can expose the Telegram username in previews as `by @username`.
+- Anonymous media cannot receive gift payments.
+- Non-anonymous media can expose the Telegram username in previews as `by @username` and can receive QRIS gifts.
 - Existing Unsplash demo covers stay in seed data as service-linked media until real uploads replace them.
+
+### GiftPayment
+
+Represents one QRIS gift attempt for a non-anonymous media item.
+
+Fields:
+- `id`
+- `orderId`
+- `mediaId`
+- `senderUserId`
+- `recipientUserId`
+- `amount`
+- `fee` nullable
+- `totalPayment` nullable
+- `paymentMethod`
+- `paymentNumber`
+- `qrImageDataUrl` nullable
+- `status`: `PENDING`, `COMPLETED`, `EXPIRED`, or `CANCELED`
+- `completedAt` nullable
+- `expiredAt`
+- `createdAt`
+- `updatedAt`
+
+Rules:
+- Gift creation is rejected when the media is anonymous or has no uploader user.
+- Pakasir QRIS is created server-side using `PAKASIR_SLUG` and `PAKASIR_API_KEY`.
+- Payment completion should be driven by Pakasir webhook and confirmed with Pakasir transaction detail.
+- Completion must be idempotent so repeated webhook delivery does not credit a wallet twice.
+- The Mini App can show QRIS, send QRIS through the bot, and manually check status, but payment state is owned by the server.
+
+### Wallet
+
+Represents the creator balance that accumulates completed gifts.
+
+Fields:
+- `id`
+- `userId`
+- `balance`
+- `pendingWithdraw`
+- `totalEarned`
+- `createdAt`
+- `updatedAt`
+
+### WalletLedger
+
+Represents auditable wallet movement.
+
+Fields:
+- `id`
+- `walletId`
+- `type`: `GIFT_CREDIT`, `WITHDRAW_HOLD`, `WITHDRAW_PAID`, or `WITHDRAW_RELEASE`
+- `amount`
+- `giftPaymentId` nullable
+- `withdrawRequestId` nullable
+- `createdAt`
+
+### WithdrawRequest
+
+Represents a manual creator payout request.
+
+Fields:
+- `id`
+- `walletId`
+- `userId`
+- `amount`
+- `payoutDetails`
+- `status`: `PENDING`, `PAID`, or `REJECTED`
+- `developerNotifiedAt` nullable
+- `paidAt` nullable
+- `rejectedAt` nullable
+- `createdAt`
+- `updatedAt`
+
+Rules:
+- Withdraw is manual in the first version.
+- A request holds funds by moving `balance` to `pendingWithdraw`.
+- The app sends a Telegram notification to the developer chat ID configured by `TELEGRAM_DEVELOPER_CHAT_ID`.
 
 ### Review
 
@@ -279,6 +357,31 @@ Initial route handlers:
   - stores the uploaded file under `public/uploads/media`
   - creates a standalone `Media` row
   - supports `isAnonymous`; author user is only returned when media is non-anonymous
+
+- `POST /api/gifts`
+  - creates a Pakasir QRIS transaction for non-anonymous media
+  - stores `GiftPayment` as `PENDING`
+  - returns QRIS string and QR image data URL
+
+- `GET /api/gifts/[orderId]/status`
+  - checks the local gift state and confirms pending payments against Pakasir
+
+- `POST /api/gifts/[orderId]/send-qris`
+  - sends the QRIS image to the sender through the Telegram bot
+
+- `POST /api/webhooks/pakasir`
+  - receives Pakasir payment completion webhook
+  - validates `order_id` and `amount`
+  - confirms status with Pakasir transaction detail
+  - credits the recipient wallet and notifies the uploader
+
+- `GET /api/wallet`
+  - returns current user wallet and recent activity
+
+- `POST /api/wallet/withdraw`
+  - creates a manual withdraw request
+  - holds wallet balance
+  - notifies the developer Telegram chat
 
 - `POST /api/services/[id]/recommend`
   - toggles recommendation for current user
