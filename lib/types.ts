@@ -1,6 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 
-export type ServiceCategory = "Desain" | "Marketing" | "Teknologi" | "Konten";
+export type ServiceCategory = string;
 
 export type Review = {
   id: string;

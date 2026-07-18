@@ -6,55 +6,45 @@ import type { NewServiceInput, Service } from "@/lib/types";
 
 type AppContextValue = {
   services: Service[];
+  categories: string[];
   recommendedIds: string[];
   reportedIds: string[];
   homeFiltersOpen: boolean;
   toggleHomeFilters: () => void;
   toggleRecommendation: (serviceId: string) => void;
   reportService: (serviceId: string) => void;
-  addService: (input: NewServiceInput) => Service;
+  addService: (input: NewServiceInput) => Promise<Service>;
+  addCategory: (name: string) => Promise<string>;
   resetDemoData: () => void;
 };
 
-const STORAGE_KEY = "tikep-app-state-v1";
 const AppContext = createContext<AppContextValue | null>(null);
 
 type StoredState = {
   services: Service[];
+  categories: string[];
   recommendedIds: string[];
   reportedIds: string[];
 };
 
 const defaultState: StoredState = {
   services: seedServices,
+  categories: ["Desain", "Marketing", "Teknologi", "Konten"],
   recommendedIds: [],
   reportedIds: [],
 };
 
-function persistState(nextState: StoredState) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
-}
+type AppStateResponse = Omit<StoredState, "categories"> & {
+  categories: { name: string }[];
+};
 
-function normalizeStoredServices(services?: Service[]) {
-  if (!services?.length) {
-    return seedServices;
-  }
-
-  return services.map((service) => {
-    const seedService = seedServices.find((item) => item.id === service.id);
-
-    if (seedService) {
-      return seedService;
-    }
-
-    return {
-      ...service,
-      reviews: service.reviews.map((review, index) => ({
-        ...review,
-        createdAt: review.createdAt ?? new Date(Date.now() - index * 60000).toISOString(),
-      })),
-    };
-  });
+function mapAppState(response: AppStateResponse): StoredState {
+  return {
+    services: response.services,
+    categories: response.categories.map((category) => category.name),
+    recommendedIds: response.recommendedIds,
+    reportedIds: response.reportedIds,
+  };
 }
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
@@ -63,27 +53,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     queueMicrotask(() => {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored) as StoredState;
-          const storedState = {
-            services: normalizeStoredServices(parsed.services),
-            recommendedIds: parsed.recommendedIds ?? [],
-            reportedIds: parsed.reportedIds ?? [],
-          };
-          setState(storedState);
-        } catch {
-          window.localStorage.removeItem(STORAGE_KEY);
-        }
-      }
+      fetch("/api/app-state")
+        .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Failed to load app state"))))
+        .then((data: AppStateResponse) => setState(mapAppState(data)))
+        .catch(() => setState(defaultState));
     });
   }, []);
 
   const value = useMemo<AppContextValue>(
     () => ({
       services: state.services,
+      categories: state.categories,
       recommendedIds: state.recommendedIds,
       reportedIds: state.reportedIds,
       homeFiltersOpen,
@@ -92,82 +72,88 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       toggleRecommendation(serviceId) {
         setState((current) => {
-          const next = {
+          return {
             ...current,
             recommendedIds: current.recommendedIds.includes(serviceId)
               ? current.recommendedIds.filter((id) => id !== serviceId)
               : [...current.recommendedIds, serviceId],
           };
-          persistState(next);
-          return next;
+        });
+        fetch(`/api/services/${serviceId}/recommend`, { method: "POST" }).catch(() => {
+          setState((current) => ({
+            ...current,
+            recommendedIds: current.recommendedIds.includes(serviceId)
+              ? current.recommendedIds.filter((id) => id !== serviceId)
+              : [...current.recommendedIds, serviceId],
+          }));
         });
       },
       reportService(serviceId) {
         setState((current) => {
-          const next = {
+          return {
             ...current,
             reportedIds: current.reportedIds.includes(serviceId)
               ? current.reportedIds
               : [...current.reportedIds, serviceId],
           };
-          persistState(next);
-          return next;
+        });
+        fetch(`/api/services/${serviceId}/report`, { method: "POST" }).catch(() => {
+          setState((current) => ({
+            ...current,
+            reportedIds: current.reportedIds.filter((id) => id !== serviceId),
+          }));
         });
       },
-      addService(input) {
-        const now = Date.now();
-        const avatar = input.provider
-          .split(/\s+/)
-          .slice(0, 2)
-          .map((word) => word[0])
-          .join("")
-          .toUpperCase()
-          .slice(0, 2);
-        const service: Service = {
-          id: `${now}-${input.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-          title: input.title.trim(),
-          provider: input.provider.trim(),
-          avatar: avatar || "TK",
-          avatarTone: "bg-violet-100 text-violet-700",
-          category: input.category,
-          price: input.price,
-          rating: 4.2,
-          description: input.description.trim(),
-          iconName: input.category === "Teknologi" ? "workflow" : input.category === "Konten" ? "pen-line" : "layers",
-          previewLabel: "Pratinjau Layanan Baru",
-          owner: "me",
-          createdAt: new Date().toISOString().slice(0, 10),
-          reviews: [
-            {
-              id: `new-${now}-positive`,
-              sentiment: "positive",
-              author: "Tikep",
-              text: "Layanan baru siap menerima rekomendasi pertama.",
-              createdAt: new Date(now).toISOString(),
-            },
-            {
-              id: `new-${now}-note`,
-              sentiment: "negative",
-              author: "Tikep",
-              text: "Belum ada catatan kendala dari pembeli.",
-              createdAt: new Date(now - 60000).toISOString(),
-            },
-          ],
-        };
-
-        setState((current) => {
-          const next = {
-            ...current,
-            services: [service, ...current.services],
-          };
-          persistState(next);
-          return next;
+      async addService(input) {
+        const response = await fetch("/api/services", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(input),
         });
-        return service;
+
+        if (!response.ok) {
+          throw new Error("Gagal menambahkan layanan.");
+        }
+
+        const data = (await response.json()) as { service: Service };
+        setState((current) => ({
+          ...current,
+          services: [data.service, ...current.services],
+          categories: current.categories.includes(data.service.category)
+            ? current.categories
+            : [...current.categories, data.service.category],
+        }));
+        return data.service;
+      },
+      async addCategory(name) {
+        const response = await fetch("/api/categories", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Gagal menambahkan kategori.");
+        }
+
+        const data = (await response.json()) as { category: { name: string } };
+        setState((current) => ({
+          ...current,
+          categories: current.categories.includes(data.category.name)
+            ? current.categories
+            : [...current.categories, data.category.name],
+        }));
+        return data.category.name;
       },
       resetDemoData() {
-        setState(defaultState);
-        window.localStorage.removeItem(STORAGE_KEY);
+        fetch("/api/demo/reset", { method: "POST" })
+          .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Failed to reset demo data"))))
+          .then((data: AppStateResponse) => setState(mapAppState(data)))
+          .catch(() => setState(defaultState));
       },
     }),
     [homeFiltersOpen, state],

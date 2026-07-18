@@ -5,11 +5,17 @@ node_modules
 .next
 out
 
+# generated
+lib/generated/prisma
+dev.db*
+prisma/dev.db*
+
 # production
 build
 
 # env
 .env*
+!.env.example
 
 # logs
 npm-debug.log*
@@ -19,3 +25,5 @@ pnpm-debug.log*
 
 # local editor
 .DS_Store
+
+/lib/generated/prisma

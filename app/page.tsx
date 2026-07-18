@@ -5,13 +5,12 @@ import { useMemo, useState } from "react";
 import { ServiceCard } from "@/components/service-card";
 import { useTikep } from "@/components/app-provider";
 import { EmptyState } from "@/components/empty-state";
-import { categories } from "@/lib/seed-data";
 import type { ServiceCategory } from "@/lib/types";
 
 type RatingFilter = "all" | "recommended" | "risk";
 
 export default function HomePage() {
-  const { services, recommendedIds, homeFiltersOpen } = useTikep();
+  const { services, categories, recommendedIds, homeFiltersOpen } = useTikep();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<ServiceCategory | "Semua">("Semua");
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>("all");

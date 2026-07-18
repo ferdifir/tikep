@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id               String            @id @default(cuid())
+  telegramId       String?           @unique
+  username         String?
+  firstName        String?
+  lastName         String?
+  photoUrl         String?
+  languageCode     String?
+  providers        Provider[]
+  categories       Category[]
+  reviews          Review[]
+  recommendations  Recommendation[]
+  reports          Report[]
+  telegramSessions TelegramSession[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model Provider {
+  id          String     @id @default(cuid())
+  ownerUserId String?
+  owner       User?      @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+  slug        String     @unique
+  name        String
+  bio         String
+  avatar      String
+  avatarTone  String
+  categories  Category[]
+  services    Service[]
+  media       Media[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Category {
+  id              String    @id @default(cuid())
+  providerId      String?
+  provider        Provider? @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  createdByUserId String?
+  createdByUser   User?     @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  slug            String
+  name            String
+  isSystem        Boolean   @default(false)
+  services        Service[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([providerId, slug])
+  @@unique([createdByUserId, slug])
+}
+
+model Service {
+  id              String           @id
+  providerId      String
+  provider        Provider         @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  categoryId      String
+  category        Category         @relation(fields: [categoryId], references: [id])
+  title           String
+  price           Int
+  ratingSnapshot  Float            @default(0)
+  description     String
+  iconName        String
+  previewLabel    String
+  ownerKind       String           @default("other")
+  media           Media[]
+  reviews         Review[]
+  recommendations Recommendation[]
+  reports         Report[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Media {
+  id           String   @id @default(cuid())
+  providerId   String
+  provider     Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  serviceId    String?
+  service      Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  type         String
+  url          String
+  thumbnailUrl String?
+  altText      String
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+}
+
+model Review {
+  id           String   @id
+  serviceId    String
+  service      Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  authorUserId String?
+  authorUser   User?    @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+  sentiment    String
+  author       String
+  text         String
+  createdAt    DateTime @default(now())
+}
+
+model Recommendation {
+  id        String   @id @default(cuid())
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([serviceId, userId])
+}
+
+model Report {
+  id        String   @id @default(cuid())
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@unique([serviceId, userId])
+}
+
+model TelegramSession {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  queryId     String?
+  authDate    DateTime
+  hash        String
+  rawInitData String
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+}
