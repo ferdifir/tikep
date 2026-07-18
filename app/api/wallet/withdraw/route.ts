@@ -3,6 +3,7 @@ import { getDemoUser } from "@/lib/demo-user";
 import { prisma } from "@/lib/prisma";
 import { sendTelegramMessage } from "@/lib/telegram-bot";
 import { getOrCreateWallet } from "@/lib/wallets";
+import { formatRupiah, getWithdrawMethod } from "@/lib/withdraw-methods";
 
 const developerChatId = process.env.TELEGRAM_DEVELOPER_CHAT_ID ?? "7764382006";
 
@@ -10,18 +11,37 @@ export async function POST(request: Request) {
   const user = await getDemoUser();
   const body = (await request.json().catch(() => ({}))) as {
     amount?: number;
-    payoutDetails?: string;
+    method?: string;
+    accountName?: string;
+    accountNumber?: string;
   };
   const amount = Number(body.amount);
-  const payoutDetails = body.payoutDetails?.trim() ?? "";
+  const method = getWithdrawMethod(body.method ?? "");
+  const accountName = body.accountName?.trim() ?? "";
+  const accountNumber = body.accountNumber?.trim() ?? "";
 
-  if (!Number.isInteger(amount) || amount < 10000) {
-    return NextResponse.json({ error: "Minimal withdraw Rp10.000." }, { status: 400 });
+  if (!method) {
+    return NextResponse.json({ error: "Metode pencairan tidak valid." }, { status: 400 });
   }
 
-  if (payoutDetails.length < 8) {
-    return NextResponse.json({ error: "Detail payout belum lengkap." }, { status: 400 });
+  if (!Number.isInteger(amount) || amount < method.minimumAmount) {
+    return NextResponse.json({ error: `Minimal pencairan ${formatRupiah(method.minimumAmount)}.` }, { status: 400 });
   }
+
+  if (amount <= method.adminFee) {
+    return NextResponse.json({ error: "Nominal harus lebih besar dari biaya admin." }, { status: 400 });
+  }
+
+  if (accountName.length < 3) {
+    return NextResponse.json({ error: "Nama pemilik akun belum lengkap." }, { status: 400 });
+  }
+
+  if (accountNumber.length < 6) {
+    return NextResponse.json({ error: "Nomor tujuan belum lengkap." }, { status: 400 });
+  }
+
+  const netAmount = amount - method.adminFee;
+  const payoutDetails = `${method.label} - ${accountName} - ${accountNumber}`;
 
   const withdraw = await prisma.$transaction(async (tx) => {
     const wallet = await getOrCreateWallet(tx, user.id);
@@ -35,6 +55,11 @@ export async function POST(request: Request) {
         walletId: wallet.id,
         userId: user.id,
         amount,
+        method: method.id,
+        accountName,
+        accountNumber,
+        adminFee: method.adminFee,
+        netAmount,
         payoutDetails,
       },
     });
@@ -74,8 +99,12 @@ export async function POST(request: Request) {
       "Request withdraw Tikep",
       `ID: ${withdraw.id}`,
       `User: ${user.username ? `@${user.username}` : user.telegramId ?? user.id}`,
-      `Nominal: Rp${withdraw.amount.toLocaleString("id-ID")}`,
-      `Payout: ${withdraw.payoutDetails}`,
+      `Metode: ${method.label}`,
+      `Nama: ${withdraw.accountName}`,
+      `Tujuan: ${withdraw.accountNumber}`,
+      `Nominal: ${formatRupiah(withdraw.amount)}`,
+      `Admin: ${formatRupiah(withdraw.adminFee)}`,
+      `Diterima: ${formatRupiah(withdraw.netAmount)}`,
     ].join("\n"),
   });
 

@@ -21,6 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     pathname.startsWith("/services/") ||
     pathname.startsWith("/media/") ||
     pathname.startsWith("/providers/") ||
+    pathname === "/wallet" ||
     pathname === "/review";
 
   if (isPreviewRoute) {

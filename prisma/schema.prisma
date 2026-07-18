@@ -233,6 +233,11 @@ model WithdrawRequest {
   wallet              Wallet         @relation(fields: [walletId], references: [id], onDelete: Cascade)
   userId              String
   amount              Int
+  method              String         @default("BI_FAST")
+  accountName         String         @default("")
+  accountNumber       String         @default("")
+  adminFee            Int            @default(0)
+  netAmount           Int            @default(0)
   payoutDetails       String
   status              String         @default("PENDING")
   developerNotifiedAt DateTime?

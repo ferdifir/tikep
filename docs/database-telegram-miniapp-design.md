@@ -211,6 +211,11 @@ Fields:
 - `walletId`
 - `userId`
 - `amount`
+- `method`: `BI_FAST`, `DANA`, or `GOPAY`
+- `accountName`
+- `accountNumber`
+- `adminFee`
+- `netAmount`
 - `payoutDetails`
 - `status`: `PENDING`, `PAID`, or `REJECTED`
 - `developerNotifiedAt` nullable
@@ -220,9 +225,11 @@ Fields:
 - `updatedAt`
 
 Rules:
-- Withdraw is manual in the first version.
+- Pencairan is processed by the Tikep team in the first version.
 - A request holds funds by moving `balance` to `pendingWithdraw`.
 - The app sends a Telegram notification to the developer chat ID configured by `TELEGRAM_DEVELOPER_CHAT_ID`.
+- Admin fee is deducted from the payout amount, not paid by Tikep.
+- Initial method rules are BI-FAST minimum Rp10.000 fee Rp2.500, DANA minimum Rp50.000 fee Rp2.500, and GoPay minimum Rp10.000 fee Rp2.500.
 
 ### Review
 
@@ -379,8 +386,9 @@ Initial route handlers:
   - returns current user wallet and recent activity
 
 - `POST /api/wallet/withdraw`
-  - creates a manual withdraw request
+  - creates a payout request
   - holds wallet balance
+  - validates method minimum and estimated admin fee
   - notifies the developer Telegram chat
 
 - `POST /api/services/[id]/recommend`
