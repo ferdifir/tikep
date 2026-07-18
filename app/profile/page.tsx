@@ -9,10 +9,13 @@ import { useTikep } from "@/components/app-provider";
 import { TikepLogo } from "@/components/tikep-logo";
 
 export default function ProfilePage() {
-  const { services, recommendedIds, reportedIds, resetDemoData } = useTikep();
+  const { currentUser, services, recommendedIds, reportedIds, resetDemoData } = useTikep();
   const [wallet, setWallet] = useState<{ balance: number; pendingWithdraw: number; totalEarned: number } | null>(null);
   const myServices = services.filter((service) => service.owner === "me");
   const recommendedServices = services.filter((service) => recommendedIds.includes(service.id));
+  const userDisplayName = [currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ");
+  const profileName = myServices[0]?.provider || userDisplayName || currentUser.username || "User Tikep";
+  const profileSubtitle = currentUser.username ? `@${currentUser.username}` : "Kreator Tikep";
 
   useEffect(() => {
     fetch("/api/wallet")
@@ -27,8 +30,8 @@ export default function ProfilePage() {
         <div className="flex items-center gap-3">
           <TikepLogo showWordmark={false} iconClassName="h-14 w-14" />
           <div className="min-w-0 flex-1">
-            <h1 className="text-lg font-bold text-gray-900">Tikep Studio</h1>
-            <p className="text-sm text-gray-500">Kreator layanan digital</p>
+            <h1 className="truncate text-lg font-bold text-gray-900">{profileName}</h1>
+            <p className="truncate text-sm text-gray-500">{profileSubtitle}</p>
           </div>
           <button
             type="button"
