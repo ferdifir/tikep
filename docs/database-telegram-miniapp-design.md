@@ -145,6 +145,9 @@ Fields:
 - `serviceId`
 - `authorUserId`
 - `sentiment`: `POSITIVE` or `NEGATIVE`
+- `status`: `UNVERIFIED`, `PENDING`, `VERIFIED`, or `REJECTED`
+- `verificationMethod`: `NONE`, `PROVIDER_CODE`, `PROOF_UPLOAD`, `EXTERNAL_LINK`, or `SEED`
+- `reviewCodeId` nullable
 - `text`
 - `createdAt`
 
@@ -152,6 +155,34 @@ Rules:
 - A service can have any mix of review sentiments.
 - Cards show the two newest reviews by `createdAt`.
 - Detail screens show all reviews newest first.
+- Provider-issued review code reviews are saved as `VERIFIED`.
+- Unverified review flows can exist later, but the rating shown to users should eventually favor verified reviews.
+
+### ReviewCode
+
+Represents a one-time provider-issued invite proving that a customer was served outside Tikep.
+
+Fields:
+- `id`
+- `serviceId`
+- `providerId`
+- `createdByUserId`
+- `usedByUserId` nullable
+- `codeHash`
+- `status`: `ACTIVE`, `USED`, or `EXPIRED`
+- `customerChatId` nullable
+- `sentAt` nullable
+- `usedAt` nullable
+- `expiresAt`
+- `createdAt`
+
+Rules:
+- The raw code is never stored, only `codeHash`.
+- A code can be used once.
+- Codes expire after a bounded period, initially 30 days.
+- If `customerChatId` is provided, the backend asks the Telegram Bot API to send the review link to that customer.
+- If bot sending is not configured or fails, the provider still receives a shareable link.
+- Review links open the Telegram Mini App with `startapp=review_<code>` when `NEXT_PUBLIC_TELEGRAM_BOT_USERNAME` is configured, or `/review?code=<code>` as browser fallback.
 
 ### Recommendation
 
@@ -238,6 +269,20 @@ Initial route handlers:
 - `POST /api/services/[id]/report`
   - creates a report for current user
 
+- `POST /api/services/[id]/review-invites`
+  - provider creates a one-time review code for a service
+  - optionally accepts `customerChatId`
+  - sends a Telegram bot message with a Mini App button when bot configuration is available
+  - returns a Telegram Mini App link and browser fallback link
+
+- `GET /api/reviews/invite?code=...`
+  - validates a review invite code and returns service/provider context for the review form
+
+- `POST /api/reviews/invite`
+  - accepts `code`, `sentiment`, `text`, and optional Telegram `initData`
+  - consumes the invite code once
+  - creates a `VERIFIED` review with `verificationMethod = PROVIDER_CODE`
+
 ## Telegram Mini App Flow
 
 1. Load Telegram Web App script in the document head.
@@ -248,6 +293,17 @@ Initial route handlers:
 6. UI uses the returned user and fetches personalized service/media data.
 
 Important security rule: never trust `initDataUnsafe` for server-side decisions. The raw `initData` must be validated on the backend before using Telegram user data.
+
+## Provider-Issued Review Flow
+
+1. Provider opens one of their service previews.
+2. Provider taps the invite review action.
+3. Backend creates a one-time `ReviewCode`.
+4. If a Telegram `chat_id` is provided, backend calls Bot API `sendMessage` with an inline Mini App button.
+5. Customer opens the Mini App from that button or direct link.
+6. Mini App receives `startapp=review_<code>` or browser fallback `?code=<code>`.
+7. Customer submits review.
+8. Backend validates the code, validates Telegram `initData` when available, marks the code `USED`, and creates a `VERIFIED` review.
 
 ## Validation Algorithm
 

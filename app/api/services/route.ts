@@ -96,6 +96,8 @@ export async function POST(request: Request) {
           {
             id: `new-${now}-positive`,
             sentiment: "POSITIVE",
+            status: "UNVERIFIED",
+            verificationMethod: "NONE",
             author: "Tikep",
             text: "Layanan baru siap menerima rekomendasi pertama.",
             createdAt: new Date(now),
@@ -103,6 +105,8 @@ export async function POST(request: Request) {
           {
             id: `new-${now}-note`,
             sentiment: "NEGATIVE",
+            status: "UNVERIFIED",
+            verificationMethod: "NONE",
             author: "Tikep",
             text: "Belum ada catatan kendala dari pembeli.",
             createdAt: new Date(now - 60000),

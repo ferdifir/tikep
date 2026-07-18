@@ -1,8 +1,9 @@
 "use client";
 
-import { ArrowLeft, Flag, Heart, Layers, PenLine, ThumbsDown, ThumbsUp, TrendingUp, Workflow } from "lucide-react";
+import { ArrowLeft, Flag, Heart, Layers, LinkIcon, MessageCircle, PenLine, Send, ThumbsDown, ThumbsUp, TrendingUp, Workflow } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { useTikep } from "@/components/app-provider";
 import { formatCurrency } from "@/lib/format";
@@ -21,6 +22,10 @@ export default function ServicePreviewPage() {
   const router = useRouter();
   const { services, recommendedIds, reportedIds, toggleRecommendation, reportService } = useTikep();
   const service = services.find((item) => item.id === params.id);
+  const [customerChatId, setCustomerChatId] = useState("");
+  const [inviteLink, setInviteLink] = useState("");
+  const [inviteStatus, setInviteStatus] = useState("");
+  const [inviteError, setInviteError] = useState("");
 
   if (!service) {
     return (
@@ -42,6 +47,48 @@ export default function ServicePreviewPage() {
   const recommended = recommendedIds.includes(service.id);
   const reported = reportedIds.includes(service.id);
   const reviews = getLatestReviews(service.reviews);
+
+  async function handleCreateReviewInvite() {
+    if (!service) {
+      return;
+    }
+
+    setInviteError("");
+    setInviteStatus("");
+
+    const response = await fetch(`/api/services/${service.id}/review-invites`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        customerChatId: customerChatId.trim() || undefined,
+      }),
+    });
+
+    if (!response.ok) {
+      setInviteError("Gagal membuat link review.");
+      return;
+    }
+
+    const data = (await response.json()) as {
+      invite: {
+        reviewUrl: string;
+        telegramUrl: string | null;
+        botMessageStatus: string;
+      };
+    };
+    setInviteLink(data.invite.telegramUrl ?? data.invite.reviewUrl);
+    setInviteStatus(
+      data.invite.botMessageStatus === "sent"
+        ? "Bot sudah mengirim link review."
+        : data.invite.botMessageStatus === "not_configured"
+          ? "Link dibuat. Bot token belum dikonfigurasi untuk kirim otomatis."
+          : data.invite.botMessageStatus === "failed"
+            ? "Link dibuat, tapi bot gagal mengirim pesan."
+            : "Link review dibuat.",
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -111,6 +158,45 @@ export default function ServicePreviewPage() {
               <span>{reported ? "Dilaporkan" : "Laporkan"}</span>
             </button>
           </div>
+
+          {service.owner === "me" ? (
+            <section className="space-y-3 rounded-xl border border-indigo-100 bg-indigo-50 p-3">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-4 w-4 text-indigo-600" />
+                <h2 className="text-sm font-bold text-gray-900">Invite review customer</h2>
+              </div>
+              <div className="grid grid-cols-[1fr_auto] gap-2">
+                <input
+                  value={customerChatId}
+                  onChange={(event) => setCustomerChatId(event.target.value)}
+                  placeholder="Telegram chat_id customer"
+                  className="h-10 rounded-lg border border-indigo-100 bg-white px-3 text-xs outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
+                <button
+                  type="button"
+                  onClick={handleCreateReviewInvite}
+                  className="flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-3 text-white transition hover:bg-indigo-700"
+                  aria-label="Kirim link review"
+                  title="Kirim link review"
+                >
+                  <Send className="h-4 w-4" />
+                </button>
+              </div>
+              {inviteStatus ? <p className="text-xs font-semibold text-indigo-700">{inviteStatus}</p> : null}
+              {inviteError ? <p className="text-xs font-semibold text-rose-600">{inviteError}</p> : null}
+              {inviteLink ? (
+                <a
+                  href={inviteLink}
+                  className="flex items-center gap-2 rounded-lg bg-white p-2 text-xs font-semibold text-indigo-700"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <LinkIcon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{inviteLink}</span>
+                </a>
+              ) : null}
+            </section>
+          ) : null}
 
           <section className="space-y-3">
             <h2 className="text-sm font-bold text-gray-900">Review</h2>

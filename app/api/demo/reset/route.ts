@@ -9,6 +9,14 @@ export async function POST() {
   const seedIds = seedServices.map((service) => service.id);
 
   await prisma.$transaction([
+    prisma.reviewCode.deleteMany({}),
+    prisma.review.deleteMany({
+      where: {
+        id: {
+          notIn: seedServices.flatMap((service) => service.reviews.map((review) => review.id)),
+        },
+      },
+    }),
     prisma.recommendation.deleteMany({ where: { userId: user.id } }),
     prisma.report.deleteMany({ where: { userId: user.id } }),
     prisma.service.deleteMany({

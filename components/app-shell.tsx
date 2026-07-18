@@ -18,7 +18,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { homeFiltersOpen, toggleHomeFilters } = useTikep();
   const showHeader = pathname === "/" || pathname === "/explore";
   const isPreviewRoute =
-    pathname.startsWith("/services/") || pathname.startsWith("/media/") || pathname.startsWith("/providers/");
+    pathname.startsWith("/services/") ||
+    pathname.startsWith("/media/") ||
+    pathname.startsWith("/providers/") ||
+    pathname === "/review";
 
   if (isPreviewRoute) {
     return <main className="mx-auto min-h-screen max-w-md bg-white shadow-xl">{children}</main>;

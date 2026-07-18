@@ -5,6 +5,8 @@ export type ServiceCategory = string;
 export type Review = {
   id: string;
   sentiment: "positive" | "negative";
+  status?: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED";
+  verificationMethod?: "NONE" | "PROVIDER_CODE" | "PROOF_UPLOAD" | "EXTERNAL_LINK" | "SEED";
   author: string;
   text: string;
   createdAt: string;
