@@ -1,9 +1,9 @@
 "use client";
 
-import { ArrowLeft, Gift, ImageIcon, Loader2, Play, Send, Share2, X } from "lucide-react";
+import { ArrowLeft, Gift, ImageIcon, Loader2, Play, Send, Share2, Volume2, VolumeX, X } from "lucide-react";
 import NextImage from "next/image";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { shareMedia } from "@/lib/share-links";
 
@@ -41,8 +41,11 @@ function getDisplayUsername(user: NonNullable<MediaPreview["authorUser"]>) {
 export default function MediaPreviewPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const [media, setMedia] = useState<MediaPreview | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isVideoPaused, setIsVideoPaused] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(true);
   const [giftOpen, setGiftOpen] = useState(false);
   const [giftAmount, setGiftAmount] = useState(10000);
   const [customAmount, setCustomAmount] = useState("");
@@ -55,7 +58,11 @@ export default function MediaPreviewPage() {
   useEffect(() => {
     fetch(`/api/media/${params.id}`)
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Media not found"))))
-      .then((data: { media: MediaPreview }) => setMedia(data.media))
+      .then((data: { media: MediaPreview }) => {
+        setIsVideoMuted(true);
+        setIsVideoPaused(false);
+        setMedia(data.media);
+      })
       .catch(() => setMedia(null))
       .finally(() => setIsLoading(false));
   }, [params.id]);
@@ -77,7 +84,6 @@ export default function MediaPreviewPage() {
   }
 
   const isVideo = media?.type === "VIDEO";
-  const showVideoElement = isVideo && !media?.thumbnailUrl;
   const authorLabel = media?.authorUser ? getDisplayUsername(media.authorUser) : "";
   const canReceiveGift = Boolean(media && !media.isAnonymous && media.authorUser);
 
@@ -178,6 +184,52 @@ export default function MediaPreviewPage() {
     }
   }
 
+  async function toggleVideoPlayback() {
+    const video = videoRef.current;
+
+    if (!video) {
+      return;
+    }
+
+    if (video.paused) {
+      await video.play().catch(() => undefined);
+      setIsVideoPaused(video.paused);
+      return;
+    }
+
+    video.pause();
+    setIsVideoPaused(true);
+  }
+
+  async function toggleVideoMute() {
+    const video = videoRef.current;
+    const nextMuted = !isVideoMuted;
+    const shouldResume = video ? !video.paused : false;
+
+    if (video) {
+      video.muted = nextMuted;
+    }
+
+    setIsVideoMuted(nextMuted);
+
+    if (video && shouldResume) {
+      await video.play().catch(() => undefined);
+      setIsVideoPaused(video.paused);
+    }
+  }
+
+  async function startVideoPlayback() {
+    const video = videoRef.current;
+
+    if (!video) {
+      return;
+    }
+
+    video.muted = isVideoMuted;
+    await video.play().catch(() => undefined);
+    setIsVideoPaused(video.paused);
+  }
+
   return (
     <div className="min-h-screen bg-black text-white">
       <header className="absolute left-0 right-0 top-0 z-50 flex items-center justify-between px-4 py-3">
@@ -204,16 +256,48 @@ export default function MediaPreviewPage() {
           >
             <Share2 className="h-5 w-5" />
           </button>
-          <span className="rounded-full bg-black/35 p-2 backdrop-blur" aria-label={isVideo ? "Video" : "Foto"}>
-            {isVideo ? <Play className="h-5 w-5 fill-current" /> : <ImageIcon className="h-5 w-5" />}
-          </span>
+          {isVideo ? (
+            <button
+              type="button"
+              onClick={toggleVideoMute}
+              className="rounded-full bg-black/35 p-2 backdrop-blur"
+              aria-label={isVideoMuted ? "Nyalakan suara" : "Matikan suara"}
+            >
+              {isVideoMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
+            </button>
+          ) : (
+            <span className="rounded-full bg-black/35 p-2 backdrop-blur" aria-label="Foto">
+              <ImageIcon className="h-5 w-5" />
+            </span>
+          )}
         </div>
       </header>
 
       <main className="relative min-h-screen">
         {media ? (
-          showVideoElement ? (
-            <video src={media.url} className="h-screen w-full object-contain" controls autoPlay muted playsInline />
+          isVideo ? (
+            <>
+              <video
+                ref={videoRef}
+                src={media.url}
+                poster={media.thumbnailUrl ?? undefined}
+                className="h-screen w-full object-contain"
+                autoPlay
+                muted={isVideoMuted}
+                playsInline
+                loop
+                preload="auto"
+                onLoadedData={startVideoPlayback}
+                onPlay={() => setIsVideoPaused(false)}
+                onPause={() => setIsVideoPaused(true)}
+              />
+              <button
+                type="button"
+                onClick={toggleVideoPlayback}
+                className="absolute inset-0 z-10 cursor-default"
+                aria-label={isVideoPaused ? "Putar video" : "Jeda video"}
+              />
+            </>
           ) : (
             <NextImage
               src={media.thumbnailUrl ?? media.url}
@@ -227,7 +311,7 @@ export default function MediaPreviewPage() {
         ) : (
           <div className="h-screen w-full animate-pulse bg-gray-950" />
         )}
-        {isVideo ? (
+        {isVideo && isVideoPaused ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/25 backdrop-blur">
               <Play className="ml-1 h-8 w-8 fill-white text-white" />
@@ -235,7 +319,7 @@ export default function MediaPreviewPage() {
           </div>
         ) : null}
         {authorLabel ? (
-          <div className="absolute bottom-5 left-4 rounded-full bg-black/45 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
+          <div className="absolute bottom-5 left-4 z-30 rounded-full bg-black/45 px-3 py-1 text-xs font-semibold text-white backdrop-blur">
             by {authorLabel}
           </div>
         ) : null}
