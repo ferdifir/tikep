@@ -145,6 +145,7 @@ async function main() {
         where: { id: review.id },
         update: {
           sentiment: review.sentiment.toUpperCase(),
+          reviewScore: service.rating,
           status: "VERIFIED",
           verificationMethod: "SEED",
           author: review.author,
@@ -155,6 +156,7 @@ async function main() {
           id: review.id,
           serviceId: service.id,
           sentiment: review.sentiment.toUpperCase(),
+          reviewScore: service.rating,
           status: "VERIFIED",
           verificationMethod: "SEED",
           author: review.author,

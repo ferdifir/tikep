@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { calculateServiceRatingSnapshot, scoreReviewWithAI } from "@/lib/ai-review-score";
 import { getUserFromInitDataOrDemo } from "@/lib/request-user";
 import { mapService, serviceInclude } from "@/lib/db-mappers";
 import { prisma } from "@/lib/prisma";
@@ -78,27 +79,63 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Kode review sudah tidak aktif." }, { status: 409 });
   }
 
-  const review = await prisma.review.create({
-    data: {
-      id: `review-${Date.now()}-${invite.id}`,
-      serviceId: invite.serviceId,
-      authorUserId: user.id,
-      reviewCodeId: invite.id,
-      sentiment: body.sentiment === "positive" ? "POSITIVE" : "NEGATIVE",
-      status: "VERIFIED",
-      verificationMethod: "PROVIDER_CODE",
-      author: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || "Customer",
-      text,
-    },
-  });
+  let reviewScore: number;
 
-  await prisma.reviewCode.update({
-    where: { id: invite.id },
-    data: {
-      status: "USED",
-      usedByUserId: user.id,
-      usedAt: new Date(),
-    },
+  try {
+    reviewScore = await scoreReviewWithAI({
+      sentiment: body.sentiment,
+      text,
+      serviceTitle: invite.service.title,
+    });
+  } catch {
+    return NextResponse.json({ error: "AI gagal menentukan score review. Coba kirim lagi." }, { status: 502 });
+  }
+
+  const review = await prisma.$transaction(async (tx) => {
+    const createdReview = await tx.review.create({
+      data: {
+        id: `review-${Date.now()}-${invite.id}`,
+        serviceId: invite.serviceId,
+        authorUserId: user.id,
+        reviewCodeId: invite.id,
+        sentiment: body.sentiment === "positive" ? "POSITIVE" : "NEGATIVE",
+        reviewScore,
+        status: "VERIFIED",
+        verificationMethod: "PROVIDER_CODE",
+        author: [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || "Customer",
+        text,
+      },
+    });
+
+    await tx.reviewCode.update({
+      where: { id: invite.id },
+      data: {
+        status: "USED",
+        usedByUserId: user.id,
+        usedAt: new Date(),
+      },
+    });
+
+    const scoredReviews = await tx.review.findMany({
+      where: {
+        serviceId: invite.serviceId,
+        status: "VERIFIED",
+        reviewScore: {
+          not: null,
+        },
+      },
+      select: {
+        reviewScore: true,
+      },
+    });
+    const ratingSnapshot = calculateServiceRatingSnapshot(scoredReviews.map((item) => item.reviewScore ?? 0));
+
+    await tx.service.update({
+      where: { id: invite.serviceId },
+      data: { ratingSnapshot },
+    });
+
+    return createdReview;
   });
 
   const service = await prisma.service.findUnique({
@@ -111,6 +148,7 @@ export async function POST(request: Request) {
       id: review.id,
       status: review.status,
       verificationMethod: review.verificationMethod,
+      reviewScore: review.reviewScore,
     },
     service: service ? mapService(service) : null,
   });

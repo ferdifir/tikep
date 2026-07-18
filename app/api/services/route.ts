@@ -96,6 +96,7 @@ export async function POST(request: Request) {
           {
             id: `new-${now}-positive`,
             sentiment: "POSITIVE",
+            reviewScore: null,
             status: "UNVERIFIED",
             verificationMethod: "NONE",
             author: "Tikep",
@@ -105,6 +106,7 @@ export async function POST(request: Request) {
           {
             id: `new-${now}-note`,
             sentiment: "NEGATIVE",
+            reviewScore: null,
             status: "UNVERIFIED",
             verificationMethod: "NONE",
             author: "Tikep",

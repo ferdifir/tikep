@@ -104,6 +104,7 @@ model Review {
   authorUserId       String?
   authorUser         User?       @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
   sentiment          String
+  reviewScore        Float?
   status             String      @default("UNVERIFIED")
   verificationMethod String      @default("NONE")
   reviewCodeId       String?     @unique

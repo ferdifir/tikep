@@ -22,6 +22,7 @@ type DbService = {
   reviews: {
     id: string;
     sentiment: string;
+    reviewScore: number | null;
     status: string;
     verificationMethod: string;
     author: string;
@@ -48,6 +49,7 @@ export function mapService(service: DbService): Service {
     reviews: service.reviews.map((review) => ({
       id: review.id,
       sentiment: review.sentiment === "POSITIVE" ? "positive" : "negative",
+      reviewScore: review.reviewScore,
       status: review.status as Service["reviews"][number]["status"],
       verificationMethod: review.verificationMethod as Service["reviews"][number]["verificationMethod"],
       author: review.author,
@@ -77,6 +79,7 @@ export const serviceInclude = {
     select: {
       id: true,
       sentiment: true,
+      reviewScore: true,
       status: true,
       verificationMethod: true,
       author: true,

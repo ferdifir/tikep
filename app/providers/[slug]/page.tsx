@@ -97,6 +97,9 @@ export default function ProviderPreviewPage() {
               )}
               <p className="leading-5">
                 <span className="font-semibold">{review.author}:</span> {review.text}
+                {typeof review.reviewScore === "number" ? (
+                  <span className="ml-1 font-bold text-gray-500">({review.reviewScore.toFixed(1)})</span>
+                ) : null}
               </p>
             </div>
           ))}
