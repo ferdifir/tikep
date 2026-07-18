@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { seedServices } from "@/lib/seed-data";
 
 export async function POST() {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Demo reset tidak tersedia di production." }, { status: 404 });
+  }
+
   const user = await getDemoUser();
   const seedIds = seedServices.map((service) => service.id);
 
@@ -63,7 +67,7 @@ export async function POST() {
   ]);
 
   return NextResponse.json({
-    services: services.map(mapService),
+    services: services.map((service) => mapService(service, user.id)),
     categories,
     recommendedIds: [],
     reportedIds: [],

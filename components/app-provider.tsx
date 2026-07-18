@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { seedServices } from "@/lib/seed-data";
+import { getTelegramInitData } from "@/lib/telegram-webapp";
 import type { NewServiceInput, Service } from "@/lib/types";
 
 type AppContextValue = {
@@ -70,7 +71,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     queueMicrotask(() => {
-      fetch("/api/app-state")
+      const initData = getTelegramInitData();
+      const url = initData ? `/api/app-state?initData=${encodeURIComponent(initData)}` : "/api/app-state";
+
+      fetch(url)
         .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Failed to load app state"))))
         .then((data: AppStateResponse) => setState(mapAppState(data)))
         .catch(() => setState(defaultState));
@@ -97,7 +101,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               : [...current.recommendedIds, serviceId],
           };
         });
-        fetch(`/api/services/${serviceId}/recommend`, { method: "POST" }).catch(() => {
+        fetch(`/api/services/${serviceId}/recommend`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ initData: getTelegramInitData() }),
+        }).catch(() => {
           setState((current) => ({
             ...current,
             recommendedIds: current.recommendedIds.includes(serviceId)
@@ -112,10 +122,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             ...current,
             reportedIds: current.reportedIds.includes(serviceId)
               ? current.reportedIds
-              : [...current.reportedIds, serviceId],
+            : [...current.reportedIds, serviceId],
           };
         });
-        fetch(`/api/services/${serviceId}/report`, { method: "POST" }).catch(() => {
+        fetch(`/api/services/${serviceId}/report`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ initData: getTelegramInitData() }),
+        }).catch(() => {
           setState((current) => ({
             ...current,
             reportedIds: current.reportedIds.filter((id) => id !== serviceId),
@@ -130,6 +146,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         formData.append("price", String(input.price));
         formData.append("description", input.description);
         formData.append("coverFile", input.coverFile);
+        formData.append("initData", getTelegramInitData());
 
         const response = await fetch("/api/services", {
           method: "POST",
@@ -156,7 +173,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ name }),
+          body: JSON.stringify({ name, initData: getTelegramInitData() }),
         });
 
         if (!response.ok) {

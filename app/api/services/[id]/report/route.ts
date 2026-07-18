@@ -1,9 +1,25 @@
 import { NextResponse } from "next/server";
-import { getDemoUser } from "@/lib/demo-user";
+import { authErrorResponse } from "@/lib/api-errors";
 import { prisma } from "@/lib/prisma";
+import { getUserFromInitDataOrDemo } from "@/lib/request-user";
 
-export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const [{ id }, user] = await Promise.all([params, getDemoUser()]);
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const body = (await request.json().catch(() => ({}))) as { initData?: string };
+  const [{ id }, user] = await Promise.all([
+    params,
+    getUserFromInitDataOrDemo(body.initData).catch((error) => {
+      const response = authErrorResponse(error);
+      if (response) {
+        return response;
+      }
+      throw error;
+    }),
+  ]);
+
+  if (user instanceof NextResponse) {
+    return user;
+  }
+
   await prisma.report.upsert({
     where: {
       serviceId_userId: {

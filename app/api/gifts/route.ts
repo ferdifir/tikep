@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import QRCode from "qrcode";
 import { NextResponse } from "next/server";
+import { authErrorResponse } from "@/lib/api-errors";
 import { createPakasirQrisTransaction } from "@/lib/pakasir";
 import { prisma } from "@/lib/prisma";
 import { getUserFromInitDataOrDemo } from "@/lib/request-user";
@@ -32,7 +33,13 @@ export async function POST(request: Request) {
   }
 
   const [sender, media] = await Promise.all([
-    getUserFromInitDataOrDemo(body.initData),
+    getUserFromInitDataOrDemo(body.initData).catch((error) => {
+      const response = authErrorResponse(error);
+      if (response) {
+        return response;
+      }
+      throw error;
+    }),
     prisma.media.findUnique({
       where: { id: mediaId },
       include: {
@@ -40,6 +47,10 @@ export async function POST(request: Request) {
       },
     }),
   ]);
+
+  if (sender instanceof NextResponse) {
+    return sender;
+  }
 
   if (!media) {
     return NextResponse.json({ error: "Media tidak ditemukan." }, { status: 404 });

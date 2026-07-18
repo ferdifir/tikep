@@ -30,7 +30,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
       avatar: provider.avatar,
       avatarTone: provider.avatarTone,
     },
-    services: provider.services.map(mapService),
+    services: provider.services.map((service) => mapService(service)),
     media: provider.media,
   });
 }

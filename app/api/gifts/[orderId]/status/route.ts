@@ -1,10 +1,24 @@
 import { NextResponse } from "next/server";
+import { authErrorResponse } from "@/lib/api-errors";
 import { getPakasirTransactionDetail } from "@/lib/pakasir";
 import { prisma } from "@/lib/prisma";
+import { getInitDataFromRequestUrl, getUserFromInitDataOrDemo } from "@/lib/request-user";
 import { notifyGiftRecipient, completeGiftPayment } from "@/lib/wallets";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ orderId: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ orderId: string }> }) {
   const { orderId } = await params;
+  const user = await getUserFromInitDataOrDemo(getInitDataFromRequestUrl(request)).catch((error) => {
+    const response = authErrorResponse(error);
+    if (response) {
+      return response;
+    }
+    throw error;
+  });
+
+  if (user instanceof NextResponse) {
+    return user;
+  }
+
   const gift = await prisma.giftPayment.findUnique({
     where: { orderId },
     include: {
@@ -14,6 +28,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ord
 
   if (!gift) {
     return NextResponse.json({ error: "Gift tidak ditemukan." }, { status: 404 });
+  }
+
+  if (gift.senderUserId !== user.id) {
+    return NextResponse.json({ error: "Gift ini bukan milik user saat ini." }, { status: 403 });
   }
 
   if (gift.status === "PENDING") {

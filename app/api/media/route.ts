@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { authErrorResponse } from "@/lib/api-errors";
 import { getUserFromInitDataOrDemo } from "@/lib/request-user";
 import { prisma } from "@/lib/prisma";
 import { allowedImageTypes, getUploadMeta, saveUploadFile } from "@/lib/upload-files";
@@ -51,7 +52,13 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const form = await request.formData();
+  const form = await request.formData().catch(() => null);
+
+  if (!form) {
+    const response = authErrorResponse(await getUserFromInitDataOrDemo(undefined).catch((error) => error));
+    return response ?? NextResponse.json({ error: "Form media tidak valid." }, { status: 400 });
+  }
+
   const file = form.get("file");
   const thumbnailFile = form.get("thumbnailFile");
   const initData = form.get("initData");
@@ -73,7 +80,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Thumbnail video gagal dibuat." }, { status: 400 });
   }
 
-  const user = await getUserFromInitDataOrDemo(typeof initData === "string" ? initData : undefined);
+  const user = await getUserFromInitDataOrDemo(typeof initData === "string" ? initData : undefined).catch((error) => {
+    const response = authErrorResponse(error);
+    if (response) {
+      return response;
+    }
+    throw error;
+  });
+
+  if (user instanceof NextResponse) {
+    return user;
+  }
+
   const savedFile = await saveUploadFile(file);
   const savedThumbnail =
     thumbnailFile instanceof File

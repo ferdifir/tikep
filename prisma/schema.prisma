@@ -24,6 +24,7 @@ model User {
   wallet           Wallet?
   giftsSent        GiftPayment[]     @relation("GiftSender")
   giftsReceived    GiftPayment[]     @relation("GiftRecipient")
+  withdraws        WithdrawRequest[]
   telegramSessions TelegramSession[]
   reviewCodesMade  ReviewCode[]      @relation("ReviewCodeCreator")
   reviewCodesUsed  ReviewCode[]      @relation("ReviewCodeUser")
@@ -232,6 +233,7 @@ model WithdrawRequest {
   walletId            String
   wallet              Wallet         @relation(fields: [walletId], references: [id], onDelete: Cascade)
   userId              String
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   amount              Int
   method              String         @default("BI_FAST")
   accountName         String         @default("")

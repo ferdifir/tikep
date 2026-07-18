@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AppProvider } from "@/components/app-provider";
 import { AppShell } from "@/components/app-shell";
+import { TelegramAccessGate } from "@/components/telegram-access-gate";
 import { TelegramStartRouter } from "@/components/telegram-start-router";
 
 export const metadata: Metadata = {
@@ -22,10 +23,12 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body>
-        <AppProvider>
-          <TelegramStartRouter />
-          <AppShell>{children}</AppShell>
-        </AppProvider>
+        <TelegramAccessGate>
+          <AppProvider>
+            <TelegramStartRouter />
+            <AppShell>{children}</AppShell>
+          </AppProvider>
+        </TelegramAccessGate>
       </body>
     </html>
   );

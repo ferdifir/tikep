@@ -3,6 +3,7 @@
 import { ArrowLeft, Banknote, Clock, Gift, Loader2, WalletCards } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { getTelegramInitData } from "@/lib/telegram-webapp";
 import { formatRupiah, getWithdrawMethod, withdrawMethods } from "@/lib/withdraw-methods";
 
 type WalletResponse = {
@@ -57,7 +58,9 @@ export default function WalletPage() {
   const netAmount = Math.max(numericAmount - selectedMethod.adminFee, 0);
 
   async function loadWallet() {
-    const response = await fetch("/api/wallet");
+    const initData = getTelegramInitData();
+    const url = initData ? `/api/wallet?initData=${encodeURIComponent(initData)}` : "/api/wallet";
+    const response = await fetch(url);
     if (!response.ok) {
       throw new Error("Wallet gagal dimuat.");
     }
@@ -86,6 +89,7 @@ export default function WalletPage() {
           accountName,
           accountNumber,
           amount: numericAmount,
+          initData: getTelegramInitData(),
         }),
       });
 

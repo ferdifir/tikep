@@ -10,6 +10,7 @@ import { useTikep } from "@/components/app-provider";
 import { formatCurrency } from "@/lib/format";
 import { shareService } from "@/lib/share-links";
 import { getLatestReviews, getProviderSlug, getRatingCircleStyle } from "@/lib/service-utils";
+import { getTelegramInitData } from "@/lib/telegram-webapp";
 import type { IconMap } from "@/lib/types";
 
 const iconMap: IconMap = {
@@ -63,7 +64,7 @@ export default function ServicePreviewPage() {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ initData: getTelegramInitData() }),
     });
 
     if (!response.ok) {

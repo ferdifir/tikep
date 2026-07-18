@@ -1,10 +1,16 @@
 import "server-only";
+import { AuthenticationError } from "@/lib/auth-errors";
 import { getDemoUser } from "@/lib/demo-user";
 import { prisma } from "@/lib/prisma";
 import { validateTelegramInitData } from "@/lib/telegram-auth";
 
+export function getInitDataFromRequestUrl(request: Request) {
+  return new URL(request.url).searchParams.get("initData")?.trim() || undefined;
+}
+
 export async function getUserFromInitDataOrDemo(initData?: string) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
+  const isProduction = process.env.NODE_ENV === "production";
 
   if (initData && botToken) {
     const validated = validateTelegramInitData(initData, botToken);
@@ -29,6 +35,14 @@ export async function getUserFromInitDataOrDemo(initData?: string) {
         languageCode: validated.user.language_code,
       },
     });
+  }
+
+  if (isProduction) {
+    if (!botToken) {
+      throw new AuthenticationError("TELEGRAM_BOT_TOKEN wajib dikonfigurasi di production.");
+    }
+
+    throw new AuthenticationError();
   }
 
   return getDemoUser();

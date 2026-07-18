@@ -1,10 +1,22 @@
 import { NextResponse } from "next/server";
+import { authErrorResponse } from "@/lib/api-errors";
 import { prisma } from "@/lib/prisma";
-import { getDemoUser } from "@/lib/demo-user";
+import { getInitDataFromRequestUrl, getUserFromInitDataOrDemo } from "@/lib/request-user";
 import { getOrCreateWallet } from "@/lib/wallets";
 
-export async function GET() {
-  const user = await getDemoUser();
+export async function GET(request: Request) {
+  const user = await getUserFromInitDataOrDemo(getInitDataFromRequestUrl(request)).catch((error) => {
+    const response = authErrorResponse(error);
+    if (response) {
+      return response;
+    }
+    throw error;
+  });
+
+  if (user instanceof NextResponse) {
+    return user;
+  }
+
   const wallet = await prisma.$transaction(async (tx) => getOrCreateWallet(tx, user.id));
   const recentLedger = await prisma.walletLedger.findMany({
     where: { walletId: wallet.id },

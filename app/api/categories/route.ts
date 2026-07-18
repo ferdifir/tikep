@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getDemoUser } from "@/lib/demo-user";
+import { authErrorResponse } from "@/lib/api-errors";
 import { prisma } from "@/lib/prisma";
+import { getUserFromInitDataOrDemo } from "@/lib/request-user";
 import { slugify } from "@/lib/slugify";
 
 export async function GET() {
@@ -13,8 +14,19 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await getDemoUser();
-  const body = (await request.json()) as { name?: string };
+  const body = (await request.json()) as { name?: string; initData?: string };
+  const user = await getUserFromInitDataOrDemo(body.initData).catch((error) => {
+    const response = authErrorResponse(error);
+    if (response) {
+      return response;
+    }
+    throw error;
+  });
+
+  if (user instanceof NextResponse) {
+    return user;
+  }
+
   const name = body.name?.trim();
 
   if (!name || name.length < 2) {

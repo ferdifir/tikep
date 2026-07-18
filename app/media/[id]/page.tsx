@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
 import { shareMedia } from "@/lib/share-links";
+import { getTelegramInitData } from "@/lib/telegram-webapp";
 
 type MediaPreview = {
   id: string;
@@ -119,7 +120,7 @@ export default function MediaPreviewPage() {
       const response = await fetch("/api/gifts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mediaId: media.id, amount }),
+        body: JSON.stringify({ mediaId: media.id, amount, initData: getTelegramInitData() }),
       });
 
       if (!response.ok) {
@@ -144,7 +145,11 @@ export default function MediaPreviewPage() {
     try {
       setGiftError("");
       setIsGiftLoading(true);
-      const response = await fetch(`/api/gifts/${giftPayment.orderId}/send-qris`, { method: "POST" });
+      const response = await fetch(`/api/gifts/${giftPayment.orderId}/send-qris`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData: getTelegramInitData() }),
+      });
 
       if (!response.ok) {
         const data = (await response.json().catch(() => ({}))) as { error?: string };
@@ -167,7 +172,11 @@ export default function MediaPreviewPage() {
     try {
       setGiftError("");
       setIsGiftLoading(true);
-      const response = await fetch(`/api/gifts/${giftPayment.orderId}/status`);
+      const initData = getTelegramInitData();
+      const url = initData
+        ? `/api/gifts/${giftPayment.orderId}/status?initData=${encodeURIComponent(initData)}`
+        : `/api/gifts/${giftPayment.orderId}/status`;
+      const response = await fetch(url);
 
       if (!response.ok) {
         const data = (await response.json().catch(() => ({}))) as { error?: string };

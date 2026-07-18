@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { calculateServiceRatingSnapshot, scoreReviewWithAI } from "@/lib/ai-review-score";
+import { authErrorResponse } from "@/lib/api-errors";
 import { getUserFromInitDataOrDemo } from "@/lib/request-user";
 import { mapService, serviceInclude } from "@/lib/db-mappers";
 import { prisma } from "@/lib/prisma";
@@ -46,7 +47,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as {
+  const body = (await request.json().catch(() => ({}))) as {
     code?: string;
     initData?: string;
     sentiment?: "positive" | "negative";
@@ -59,7 +60,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Review belum lengkap." }, { status: 400 });
   }
 
-  const user = await getUserFromInitDataOrDemo(body.initData);
+  const user = await getUserFromInitDataOrDemo(body.initData).catch((error) => {
+    const response = authErrorResponse(error);
+    if (response) {
+      return response;
+    }
+    throw error;
+  });
+
+  if (user instanceof NextResponse) {
+    return user;
+  }
+
   const invite = await prisma.reviewCode.findUnique({
     where: {
       codeHash: hashReviewCode(code),

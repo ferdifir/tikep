@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { getDemoUser } from "@/lib/demo-user";
+import { authErrorResponse } from "@/lib/api-errors";
 import { mapService, serviceInclude } from "@/lib/db-mappers";
 import { prisma } from "@/lib/prisma";
+import { getUserFromInitDataOrDemo } from "@/lib/request-user";
 import { slugify } from "@/lib/slugify";
 import { allowedImageTypes, getUploadMeta, saveUploadFile } from "@/lib/upload-files";
 
@@ -21,12 +22,30 @@ export async function GET() {
     include: serviceInclude,
   });
 
-  return NextResponse.json({ services: services.map(mapService) });
+  return NextResponse.json({ services: services.map((service) => mapService(service)) });
 }
 
 export async function POST(request: Request) {
-  const user = await getDemoUser();
-  const form = await request.formData();
+  const form = await request.formData().catch(() => null);
+
+  if (!form) {
+    const response = authErrorResponse(await getUserFromInitDataOrDemo(undefined).catch((error) => error));
+    return response ?? NextResponse.json({ error: "Form layanan tidak valid." }, { status: 400 });
+  }
+
+  const initData = typeof form.get("initData") === "string" ? String(form.get("initData")).trim() : undefined;
+  const user = await getUserFromInitDataOrDemo(initData).catch((error) => {
+    const response = authErrorResponse(error);
+    if (response) {
+      return response;
+    }
+    throw error;
+  });
+
+  if (user instanceof NextResponse) {
+    return user;
+  }
+
   const coverFile = form.get("coverFile");
   const title = typeof form.get("title") === "string" ? String(form.get("title")).trim() : "";
   const providerName = typeof form.get("provider") === "string" ? String(form.get("provider")).trim() : "";
@@ -52,20 +71,33 @@ export async function POST(request: Request) {
 
   const savedCover = await saveUploadFile(coverFile, { allowedTypes: allowedImageTypes });
 
-  const provider = await prisma.provider.upsert({
-    where: { slug: slugify(providerName) },
-    update: {
-      name: providerName,
-    },
-    create: {
-      ownerUserId: user.id,
-      slug: slugify(providerName),
-      name: providerName,
-      bio: "Penyedia produk dan jasa digital",
-      avatar: makeAvatar(providerName),
-      avatarTone: "bg-violet-100 text-violet-700",
-    },
+  const providerSlug = slugify(providerName);
+  const existingProvider = await prisma.provider.findUnique({
+    where: { slug: providerSlug },
   });
+
+  if (existingProvider?.ownerUserId && existingProvider.ownerUserId !== user.id) {
+    return NextResponse.json({ error: "Nama penyedia sudah dipakai user lain." }, { status: 409 });
+  }
+
+  const provider = existingProvider
+    ? await prisma.provider.update({
+        where: { id: existingProvider.id },
+        data: {
+          ownerUserId: existingProvider.ownerUserId ?? user.id,
+          name: providerName,
+        },
+      })
+    : await prisma.provider.create({
+        data: {
+          ownerUserId: user.id,
+          slug: providerSlug,
+          name: providerName,
+          bio: "Penyedia produk dan jasa digital",
+          avatar: makeAvatar(providerName),
+          avatarTone: "bg-violet-100 text-violet-700",
+        },
+      });
 
   const category = categoryId
     ? await prisma.category.findUnique({ where: { id: categoryId } })
@@ -95,35 +127,11 @@ export async function POST(request: Request) {
       categoryId: usableCategory.id,
       title,
       price,
-      ratingSnapshot: 4.2,
+      ratingSnapshot: 0,
       description,
       iconName: usableCategory.name === "Teknologi" ? "workflow" : usableCategory.name === "Konten" ? "pen-line" : "layers",
       previewLabel: "Pratinjau Layanan Baru",
       ownerKind: "me",
-      reviews: {
-        create: [
-          {
-            id: `new-${now}-positive`,
-            sentiment: "POSITIVE",
-            reviewScore: null,
-            status: "UNVERIFIED",
-            verificationMethod: "NONE",
-            author: "Tikep",
-            text: "Layanan baru siap menerima rekomendasi pertama.",
-            createdAt: new Date(now),
-          },
-          {
-            id: `new-${now}-note`,
-            sentiment: "NEGATIVE",
-            reviewScore: null,
-            status: "UNVERIFIED",
-            verificationMethod: "NONE",
-            author: "Tikep",
-            text: "Belum ada catatan kendala dari pembeli.",
-            createdAt: new Date(now - 60000),
-          },
-        ],
-      },
       media: {
         create: {
           providerId: provider.id,
@@ -138,5 +146,5 @@ export async function POST(request: Request) {
     include: serviceInclude,
   });
 
-  return NextResponse.json({ service: mapService(createdService) }, { status: 201 });
+  return NextResponse.json({ service: mapService(createdService, user.id) }, { status: 201 });
 }

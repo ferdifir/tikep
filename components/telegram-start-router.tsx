@@ -2,19 +2,10 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
+import { getTelegramStartParam } from "@/lib/telegram-webapp";
 
 function getStartParamFromTelegram() {
-  const telegram = (window as typeof window & {
-    Telegram?: {
-      WebApp?: {
-        initDataUnsafe?: {
-          start_param?: string;
-        };
-      };
-    };
-  }).Telegram?.WebApp;
-
-  return telegram?.initDataUnsafe?.start_param ?? "";
+  return getTelegramStartParam();
 }
 
 function TelegramStartRouterInner() {
@@ -32,6 +23,11 @@ function TelegramStartRouterInner() {
 
       if (startParam.startsWith("media_")) {
         router.replace(`/media/${startParam.slice("media_".length)}`);
+        return;
+      }
+
+      if (startParam.startsWith("review_")) {
+        router.replace(`/review?code=${encodeURIComponent(startParam.slice("review_".length))}`);
       }
     });
   }, [router, searchParams]);

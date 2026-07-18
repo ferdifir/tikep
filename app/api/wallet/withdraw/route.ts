@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { getDemoUser } from "@/lib/demo-user";
+import { authErrorResponse } from "@/lib/api-errors";
 import { prisma } from "@/lib/prisma";
+import { getUserFromInitDataOrDemo } from "@/lib/request-user";
 import { sendTelegramMessage } from "@/lib/telegram-bot";
 import { getOrCreateWallet } from "@/lib/wallets";
 import { formatRupiah, getWithdrawMethod } from "@/lib/withdraw-methods";
@@ -8,13 +9,25 @@ import { formatRupiah, getWithdrawMethod } from "@/lib/withdraw-methods";
 const developerChatId = process.env.TELEGRAM_DEVELOPER_CHAT_ID ?? "7764382006";
 
 export async function POST(request: Request) {
-  const user = await getDemoUser();
   const body = (await request.json().catch(() => ({}))) as {
     amount?: number;
     method?: string;
     accountName?: string;
     accountNumber?: string;
+    initData?: string;
   };
+  const user = await getUserFromInitDataOrDemo(body.initData).catch((error) => {
+    const response = authErrorResponse(error);
+    if (response) {
+      return response;
+    }
+    throw error;
+  });
+
+  if (user instanceof NextResponse) {
+    return user;
+  }
+
   const amount = Number(body.amount);
   const method = getWithdrawMethod(body.method ?? "");
   const accountName = body.accountName?.trim() ?? "";

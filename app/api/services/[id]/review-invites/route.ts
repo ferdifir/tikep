@@ -1,11 +1,26 @@
 import { NextResponse } from "next/server";
-import { getDemoUser } from "@/lib/demo-user";
+import { authErrorResponse } from "@/lib/api-errors";
 import { prisma } from "@/lib/prisma";
+import { getUserFromInitDataOrDemo } from "@/lib/request-user";
 import { createReviewCode, getReviewUrls, hashReviewCode, sendReviewInviteMessage } from "@/lib/review-invites";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const [{ id }, providerUser] = await Promise.all([params, getDemoUser()]);
-  const body = (await request.json().catch(() => ({}))) as { customerChatId?: string };
+  const body = (await request.json().catch(() => ({}))) as { customerChatId?: string; initData?: string };
+  const [{ id }, providerUser] = await Promise.all([
+    params,
+    getUserFromInitDataOrDemo(body.initData).catch((error) => {
+      const response = authErrorResponse(error);
+      if (response) {
+        return response;
+      }
+      throw error;
+    }),
+  ]);
+
+  if (providerUser instanceof NextResponse) {
+    return providerUser;
+  }
+
   const service = await prisma.service.findUnique({
     where: { id },
     include: {

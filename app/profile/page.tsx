@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/empty-state";
 import { ProfileServiceGrid } from "@/components/profile-service-grid";
 import { useTikep } from "@/components/app-provider";
 import { TikepLogo } from "@/components/tikep-logo";
+import { getTelegramInitData } from "@/lib/telegram-webapp";
 
 export default function ProfilePage() {
   const { currentUser, services, recommendedIds, reportedIds } = useTikep();
@@ -18,7 +19,10 @@ export default function ProfilePage() {
   const profileSubtitle = currentUser.username ? `@${currentUser.username}` : "Kreator Tikep";
 
   useEffect(() => {
-    fetch("/api/wallet")
+    const initData = getTelegramInitData();
+    const url = initData ? `/api/wallet?initData=${encodeURIComponent(initData)}` : "/api/wallet";
+
+    fetch(url)
       .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Failed to load wallet"))))
       .then((data: { wallet: { balance: number; pendingWithdraw: number; totalEarned: number } }) => setWallet(data.wallet))
       .catch(() => setWallet(null));

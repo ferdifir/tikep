@@ -12,6 +12,7 @@ type DbService = {
   ownerKind: string;
   createdAt: Date;
   provider: {
+    ownerUserId: string | null;
     name: string;
     avatar: string;
     avatarTone: string;
@@ -35,7 +36,7 @@ type DbService = {
   }[];
 };
 
-export function mapService(service: DbService): Service {
+export function mapService(service: DbService, currentUserId?: string): Service {
   return {
     id: service.id,
     title: service.title,
@@ -49,7 +50,7 @@ export function mapService(service: DbService): Service {
     iconName: service.iconName,
     previewLabel: service.previewLabel,
     coverUrl: service.media[0]?.thumbnailUrl ?? service.media[0]?.url ?? null,
-    owner: service.ownerKind === "me" ? "me" : "other",
+    owner: currentUserId && service.provider.ownerUserId === currentUserId ? "me" : "other",
     createdAt: service.createdAt.toISOString().slice(0, 10),
     reviews: service.reviews.map((review) => ({
       id: review.id,
@@ -68,6 +69,7 @@ export const serviceInclude = {
   provider: {
     select: {
       name: true,
+      ownerUserId: true,
       avatar: true,
       avatarTone: true,
     },
