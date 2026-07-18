@@ -58,7 +58,35 @@ Fields:
 Relations:
 - belongs to a user when claimed
 - has many services
+- has many categories
 - has many media items through services or direct showcase posts
+
+### Category
+
+Represents a product or service category. Categories are stored in the database instead of being hard-coded in the frontend.
+
+Fields:
+- `id`
+- `providerId` nullable
+- `createdByUserId` nullable
+- `slug`
+- `name`
+- `isSystem`
+- `createdAt`
+- `updatedAt`
+
+Relations:
+- system categories have `isSystem = true` and no provider owner
+- custom categories can belong to a provider or to the user who created them
+- services belong to one category
+
+Rules:
+- Seed the current default categories: `Desain`, `Marketing`, `Teknologi`, and `Konten`.
+- Users can create custom categories from the post flow or a category management UI.
+- Category names should be unique within the same scope: system scope, provider scope, or user scope.
+- A service must reference `categoryId`; the API can still return the display `category.name` for the current UI.
+- System categories are available to every user.
+- Custom categories are available to the owner and can be shown publicly when attached to a public service.
 
 ### Service
 
@@ -67,8 +95,8 @@ Represents a product or service listing.
 Fields:
 - `id`
 - `providerId`
+- `categoryId`
 - `title`
-- `category`
 - `price`
 - `ratingSnapshot`
 - `description`
@@ -79,6 +107,7 @@ Fields:
 
 Relations:
 - belongs to provider
+- belongs to category
 - has many reviews
 - has many media items
 - has many recommendations
@@ -185,6 +214,14 @@ Initial route handlers:
 
 - `POST /api/services`
   - creates a new service for the current user's provider
+  - accepts `categoryId`
+
+- `GET /api/categories`
+  - returns system categories and custom categories available to the current user/provider
+
+- `POST /api/categories`
+  - creates a custom category for the current user or provider
+  - rejects duplicate names within the same category scope
 
 - `GET /api/providers/[slug]`
   - returns provider profile, services, media, and latest reviews
@@ -239,7 +276,7 @@ Server validation follows Telegram's Mini App data validation flow:
 - Install Prisma dependencies.
 - Add `prisma/schema.prisma`.
 - Add migration and seed script.
-- Seed current demo services, providers, media, and reviews.
+- Seed current demo categories, services, providers, media, and reviews.
 
 ### Phase 2: Add Read APIs
 
@@ -250,6 +287,8 @@ Server validation follows Telegram's Mini App data validation flow:
 
 - Replace local recommendation/report state with API mutations.
 - Replace post form local creation with `POST /api/services`.
+- Replace hard-coded category list with `GET /api/categories`.
+- Allow custom category creation with `POST /api/categories`.
 - Recalculate or update service `ratingSnapshot` when reviews change.
 
 ### Phase 4: Add Telegram Session
