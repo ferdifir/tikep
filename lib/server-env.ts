@@ -9,7 +9,7 @@ export function getDatabaseUrl() {
     throw new Error("DATABASE_URL wajib dikonfigurasi di production.");
   }
 
-  return "file:./dev.db";
+  return "postgresql://tikep:tikep@localhost:5432/tikep";
 }
 
 export function getDeveloperTelegramUserId() {
