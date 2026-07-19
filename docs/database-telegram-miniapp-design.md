@@ -228,7 +228,7 @@ Fields:
 Rules:
 - Pencairan is processed by the Tikep team in the first version.
 - A request holds funds by moving `balance` to `pendingWithdraw`.
-- The app sends a Telegram notification to the developer chat ID configured by `TELEGRAM_DEVELOPER_CHAT_ID`.
+- The app sends a Telegram notification to the developer private chat using the user ID configured by `TELEGRAM_DEVELOPER_USER_ID`.
 - Admin fee is deducted from the payout amount, not paid by Tikep.
 - Initial method rules are BI-FAST minimum Rp10.000 fee Rp2.500, DANA minimum Rp50.000 fee Rp2.500, and GoPay minimum Rp10.000 fee Rp2.500.
 

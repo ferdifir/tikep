@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 import { authErrorResponse } from "@/lib/api-errors";
 import { prisma } from "@/lib/prisma";
 import { getUserFromInitDataOrDemo } from "@/lib/request-user";
-import { getDeveloperChatId } from "@/lib/server-env";
+import { getDeveloperTelegramUserId } from "@/lib/server-env";
 import { sendTelegramMessage } from "@/lib/telegram-bot";
 import { getOrCreateWallet } from "@/lib/wallets";
 import { formatRupiah, getWithdrawMethod } from "@/lib/withdraw-methods";
 
-const developerChatId = getDeveloperChatId();
+const developerTelegramUserId = getDeveloperTelegramUserId();
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
@@ -107,9 +107,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Saldo tidak cukup." }, { status: 400 });
   }
 
-  const notifyResult = developerChatId
+  const notifyResult = developerTelegramUserId
     ? await sendTelegramMessage({
-        chatId: developerChatId,
+        chatId: developerTelegramUserId,
         text: [
           "Request withdraw Tikep",
           `ID: ${withdraw.id}`,
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
           `Diterima: ${formatRupiah(withdraw.netAmount)}`,
         ].join("\n"),
       })
-    : { status: "not_configured" as const, error: "TELEGRAM_DEVELOPER_CHAT_ID belum dikonfigurasi." };
+    : { status: "not_configured" as const, error: "TELEGRAM_DEVELOPER_USER_ID belum dikonfigurasi." };
 
   if (notifyResult.status === "sent") {
     await prisma.withdrawRequest.update({

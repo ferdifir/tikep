@@ -12,8 +12,8 @@ export function getDatabaseUrl() {
   return "file:./dev.db";
 }
 
-export function getDeveloperChatId() {
-  return process.env.TELEGRAM_DEVELOPER_CHAT_ID?.trim() || null;
+export function getDeveloperTelegramUserId() {
+  return process.env.TELEGRAM_DEVELOPER_USER_ID?.trim() || null;
 }
 
 export function isTelegramAuthDebugEnabled() {

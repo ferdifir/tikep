@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getDeveloperChatId } from "@/lib/server-env";
+import { getDeveloperTelegramUserId } from "@/lib/server-env";
 import { answerTelegramCallbackQuery, editTelegramMessageText, sendTelegramMessage } from "@/lib/telegram-bot";
 import { formatRupiah } from "@/lib/withdraw-methods";
 
@@ -35,7 +35,7 @@ type TelegramUpdate = {
   };
 };
 
-const developerChatId = getDeveloperChatId();
+const developerTelegramUserId = getDeveloperTelegramUserId();
 
 function getMiniAppUrl(startParam = "home") {
   const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.replace(/^@/, "");
@@ -52,11 +52,11 @@ function normalizeCommand(text: string) {
 }
 
 function isAuthorizedDeveloper(update: TelegramUpdate) {
-  if (!developerChatId) {
+  if (!developerTelegramUserId) {
     return false;
   }
 
-  return String(update.message?.from?.id ?? "") === String(developerChatId);
+  return String(update.message?.from?.id ?? "") === String(developerTelegramUserId);
 }
 
 function getUserLabel(user: {
