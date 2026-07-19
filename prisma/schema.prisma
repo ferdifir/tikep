@@ -18,7 +18,6 @@ model User {
   photoUrl         String?
   languageCode     String?
   providers        Provider[]
-  categories       Category[]
   reviews          Review[]
   inquiriesMade    ServiceInquiry[]  @relation("InquiryCustomer")
   recommendations  Recommendation[]
@@ -46,7 +45,6 @@ model Provider {
   bio         String
   avatar      String
   avatarTone  String
-  categories  Category[]
   services    Service[]
   media       Media[]
   reviewCodes ReviewCode[]
@@ -56,21 +54,13 @@ model Provider {
 }
 
 model Category {
-  id              String    @id @default(cuid())
-  providerId      String?
-  provider        Provider? @relation(fields: [providerId], references: [id], onDelete: Cascade)
-  createdByUserId String?
-  createdByUser   User?     @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
-  slug            String
-  name            String
-  isSystem        Boolean   @default(false)
-  services        Service[]
-  deletedAt       DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  @@unique([providerId, slug])
-  @@unique([createdByUserId, slug])
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String
+  services  Service[]
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Service {

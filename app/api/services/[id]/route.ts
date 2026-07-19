@@ -83,17 +83,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     (await prisma.category.findFirst({
       where: {
         slug: slugify(categoryName),
-        createdByUserId: user.id,
-        isSystem: false,
         deletedAt: null,
       },
     })) ??
     (await prisma.category.create({
       data: {
-        createdByUserId: user.id,
         slug: slugify(categoryName),
         name: categoryName,
-        isSystem: false,
       },
     }));
 

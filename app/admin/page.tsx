@@ -33,9 +33,6 @@ type AdminCategory = {
   id: string;
   name: string;
   slug: string;
-  isSystem: boolean;
-  createdByUserId: string | null;
-  ownerLabel: string;
   servicesCount: number;
   deletedAt: string | null;
 };
@@ -230,7 +227,7 @@ export default function AdminPage() {
         ) : !data ? (
           <EmptyState title="Admin tidak tersedia" body="Session developer tidak valid." />
         ) : activeTab === "categories" ? (
-          <CategoriesPanel data={data} busyAction={busyAction} runAction={runAction} />
+          <CategoriesPanel categories={data.categories} busyAction={busyAction} runAction={runAction} />
         ) : activeTab === "media" ? (
           <MediaPanel items={data.media} busyAction={busyAction} runAction={runAction} />
         ) : activeTab === "services" ? (
@@ -281,21 +278,19 @@ function ActionButton({
 }
 
 function CategoriesPanel({
-  data,
+  categories,
   busyAction,
   runAction,
 }: {
-  data: AdminData;
+  categories: AdminCategory[];
   busyAction: string;
   runAction: (action: string, payload?: Record<string, unknown>) => Promise<void>;
 }) {
   const [name, setName] = useState("");
-  const [isSystem, setIsSystem] = useState(true);
-  const [ownerId, setOwnerId] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await runAction("category.create", { name, isSystem, createdByUserId: ownerId || null });
+    await runAction("category.create", { name });
     setName("");
   }
 
@@ -303,23 +298,9 @@ function CategoriesPanel({
     <section className="space-y-3">
       <form onSubmit={submit} className="space-y-2 rounded-lg border border-gray-200 bg-white p-3">
         <input value={name} onChange={(event) => setName(event.target.value)} placeholder="Nama kategori" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-500" />
-        <div className="grid grid-cols-[1fr_auto] gap-2">
-          <select value={isSystem ? "system" : "user"} onChange={(event) => setIsSystem(event.target.value === "system")} className="rounded-lg border border-gray-200 px-3 py-2 text-sm">
-            <option value="system">Global/system</option>
-            <option value="user">Milik user</option>
-          </select>
-          <button type="submit" className="rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">Tambah</button>
-        </div>
-        {!isSystem ? (
-          <select value={ownerId} onChange={(event) => setOwnerId(event.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm">
-            <option value="">Developer</option>
-            {data.users.map((user) => (
-              <option key={user.id} value={user.id}>{user.label}</option>
-            ))}
-          </select>
-        ) : null}
+        <button type="submit" className="h-10 w-full rounded-lg bg-gray-900 px-4 text-sm font-bold text-white">Tambah</button>
       </form>
-      {data.categories.map((category) => (
+      {categories.map((category) => (
         <CategoryRow key={category.id} category={category} busyAction={busyAction} runAction={runAction} />
       ))}
     </section>
@@ -336,7 +317,6 @@ function CategoryRow({
   runAction: (action: string, payload?: Record<string, unknown>) => Promise<void>;
 }) {
   const [name, setName] = useState(category.name);
-  const [isSystem, setIsSystem] = useState(category.isSystem);
 
   return (
     <article className="space-y-2 rounded-lg border border-gray-200 bg-white p-3">
@@ -344,13 +324,13 @@ function CategoryRow({
         <div>
           <div className="flex items-center gap-2">
             <StatusPill deletedAt={category.deletedAt} />
-            <span className="text-xs font-bold text-gray-500">{category.isSystem ? "Global" : category.ownerLabel}</span>
+            <span className="text-xs font-bold text-gray-500">{category.servicesCount} produk</span>
           </div>
           <p className="mt-1 text-sm font-bold text-gray-950">{category.name}</p>
-          <p className="text-xs text-gray-500">{category.slug} · {category.servicesCount} produk</p>
+          <p className="text-xs text-gray-500">{category.slug}</p>
         </div>
         <div className="flex gap-1">
-          <ActionButton icon={<Check className="h-4 w-4" />} label="Simpan" disabled={Boolean(busyAction)} tone="success" onClick={() => runAction("category.update", { id: category.id, name, isSystem })} />
+          <ActionButton icon={<Check className="h-4 w-4" />} label="Simpan" disabled={Boolean(busyAction)} tone="success" onClick={() => runAction("category.update", { id: category.id, name })} />
           {category.deletedAt ? (
             <ActionButton icon={<RotateCcw className="h-4 w-4" />} label="Restore" disabled={Boolean(busyAction)} onClick={() => runAction("category.restore", { id: category.id })} />
           ) : (
@@ -359,13 +339,7 @@ function CategoryRow({
           <ActionButton icon={<Trash2 className="h-4 w-4" />} label="Hard delete" disabled={Boolean(busyAction)} tone="danger" onClick={() => runAction("category.hardDelete", { id: category.id })} />
         </div>
       </div>
-      <div className="grid grid-cols-[1fr_auto] gap-2">
-        <input value={name} onChange={(event) => setName(event.target.value)} className="rounded-lg border border-gray-200 px-3 py-2 text-sm" />
-        <select value={isSystem ? "system" : "user"} onChange={(event) => setIsSystem(event.target.value === "system")} className="rounded-lg border border-gray-200 px-2 text-sm">
-          <option value="system">Global</option>
-          <option value="user">User</option>
-        </select>
-      </div>
+      <input value={name} onChange={(event) => setName(event.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
     </article>
   );
 }

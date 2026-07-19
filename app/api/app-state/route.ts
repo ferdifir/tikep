@@ -25,9 +25,9 @@ export async function GET(request: Request) {
       include: serviceInclude,
     }),
     prisma.category.findMany({
-      where: { createdByUserId: user.id, isSystem: false, deletedAt: null },
-      orderBy: [{ isSystem: "desc" }, { name: "asc" }],
-      select: { id: true, name: true, slug: true, isSystem: true },
+      where: { deletedAt: null },
+      orderBy: [{ name: "asc" }],
+      select: { id: true, name: true, slug: true },
     }),
     prisma.recommendation.findMany({
       where: { userId: user.id },

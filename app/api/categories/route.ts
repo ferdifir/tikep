@@ -20,9 +20,9 @@ export async function GET(request: Request) {
   }
 
   const categories = await prisma.category.findMany({
-    where: { createdByUserId: user.id, isSystem: false, deletedAt: null },
+    where: { deletedAt: null },
     orderBy: [{ name: "asc" }],
-    select: { id: true, name: true, slug: true, isSystem: true },
+    select: { id: true, name: true, slug: true },
   });
 
   return NextResponse.json({ categories });
@@ -52,7 +52,6 @@ export async function POST(request: Request) {
   const existingCategory = await prisma.category.findFirst({
     where: {
       slug,
-      createdByUserId: user.id,
       deletedAt: null,
     },
   });
@@ -63,12 +62,10 @@ export async function POST(request: Request) {
 
   const category = await prisma.category.create({
     data: {
-      createdByUserId: user.id,
       slug,
       name,
-      isSystem: false,
     },
-    select: { id: true, name: true, slug: true, isSystem: true },
+    select: { id: true, name: true, slug: true },
   });
 
   return NextResponse.json({ category }, { status: 201 });

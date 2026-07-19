@@ -119,12 +119,10 @@ export async function POST(request: Request) {
       });
 
   const category = categoryId
-    ? await prisma.category.findFirst({ where: { id: categoryId, createdByUserId: user.id, isSystem: false, deletedAt: null } })
+    ? await prisma.category.findFirst({ where: { id: categoryId, deletedAt: null } })
     : await prisma.category.findFirst({
         where: {
           slug: slugify(categoryName),
-          createdByUserId: user.id,
-          isSystem: false,
           deletedAt: null,
         },
       });
@@ -137,10 +135,8 @@ export async function POST(request: Request) {
     category ??
     (await prisma.category.create({
       data: {
-        createdByUserId: user.id,
         slug: slugify(categoryName),
         name: categoryName,
-        isSystem: false,
       },
     }));
 

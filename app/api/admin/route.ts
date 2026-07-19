@@ -13,8 +13,6 @@ type AdminActionBody = {
   action?: string;
   id?: string;
   name?: string;
-  isSystem?: boolean;
-  createdByUserId?: string | null;
   caption?: string | null;
   isAnonymous?: boolean;
   title?: string;
@@ -42,11 +40,8 @@ export async function GET(request: Request) {
 
   const [categories, media, services, users, withdraws] = await Promise.all([
     prisma.category.findMany({
-      orderBy: [{ deletedAt: "asc" }, { isSystem: "desc" }, { name: "asc" }],
+      orderBy: [{ deletedAt: "asc" }, { name: "asc" }],
       include: {
-        createdByUser: {
-          select: { id: true, username: true, firstName: true, lastName: true, telegramId: true },
-        },
         _count: {
           select: { services: true },
         },
@@ -117,9 +112,6 @@ export async function GET(request: Request) {
       id: category.id,
       name: category.name,
       slug: category.slug,
-      isSystem: category.isSystem,
-      createdByUserId: category.createdByUserId,
-      ownerLabel: category.createdByUser ? userLabel(category.createdByUser) : "Global",
       servicesCount: category._count.services,
       deletedAt: category.deletedAt?.toISOString() ?? null,
       createdAt: category.createdAt.toISOString(),
@@ -215,8 +207,6 @@ export async function POST(request: Request) {
           data: {
             name,
             slug: slugify(name),
-            isSystem: Boolean(body.isSystem),
-            createdByUserId: body.isSystem ? null : body.createdByUserId ?? developer.id,
           },
         });
         return NextResponse.json({ category });
@@ -232,8 +222,6 @@ export async function POST(request: Request) {
           data: {
             name,
             slug: slugify(name),
-            isSystem: Boolean(body.isSystem),
-            createdByUserId: body.isSystem ? null : undefined,
           },
         });
         return NextResponse.json({ category });
