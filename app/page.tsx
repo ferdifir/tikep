@@ -4,6 +4,7 @@ import { Search, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ServiceCard } from "@/components/service-card";
 import { useTikep } from "@/components/app-provider";
+import { CustomSelect } from "@/components/custom-select";
 import { EmptyState } from "@/components/empty-state";
 import type { ServiceCategory } from "@/lib/types";
 
@@ -68,15 +69,17 @@ export default function HomePage() {
 
           <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-2">
             <SlidersHorizontal className="h-4 w-4 shrink-0 text-gray-500" />
-            <select
+            <CustomSelect
               value={ratingFilter}
-              onChange={(event) => setRatingFilter(event.target.value as RatingFilter)}
-              className="h-9 flex-1 rounded-md border border-gray-200 bg-white px-2 text-xs font-semibold text-gray-700 outline-none"
-            >
-              <option value="all">Semua rating</option>
-              <option value="recommended">Rating 4.0 ke atas</option>
-              <option value="risk">Rating di bawah 4.0</option>
-            </select>
+              onChange={(value) => setRatingFilter(value as RatingFilter)}
+              className="flex-1"
+              buttonClassName="h-9 rounded-md px-2 text-xs"
+              options={[
+                { value: "all", label: "Semua rating" },
+                { value: "recommended", label: "Rating 4.0 ke atas" },
+                { value: "risk", label: "Rating di bawah 4.0" },
+              ]}
+            />
             <span className="rounded-md bg-gray-50 px-2 py-2 text-xs font-bold text-gray-600">
               {filteredServices.length}
             </span>

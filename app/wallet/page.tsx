@@ -3,6 +3,7 @@
 import { ArrowLeft, Banknote, Clock, Gift, Loader2, WalletCards } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { CustomSelect } from "@/components/custom-select";
 import { getTelegramInitData } from "@/lib/telegram-webapp";
 import { formatRupiah, getWithdrawMethod, withdrawMethods } from "@/lib/withdraw-methods";
 
@@ -148,17 +149,11 @@ export default function WalletPage() {
 
         <label className="block space-y-1.5">
           <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Metode</span>
-          <select
+          <CustomSelect
             value={methodId}
-            onChange={(event) => setMethodId(event.target.value as typeof methodId)}
-            className="h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-          >
-            {withdrawMethods.map((method) => (
-              <option key={method.id} value={method.id}>
-                {method.label}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => setMethodId(value as typeof methodId)}
+            options={withdrawMethods.map((method) => ({ value: method.id, label: method.label }))}
+          />
         </label>
 
         <div className="grid grid-cols-2 gap-2">

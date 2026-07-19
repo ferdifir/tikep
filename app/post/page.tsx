@@ -1,23 +1,28 @@
 "use client";
 
-import { CheckCircle2, MessageCircle, PlusCircle, RefreshCw } from "lucide-react";
+import { CheckCircle2, MessageCircle, PlusCircle, RefreshCw, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTikep } from "@/components/app-provider";
+import { CustomSelect, type CustomSelectOption } from "@/components/custom-select";
 import { getBotStartUrl } from "@/lib/telegram-webapp";
 import type { ServiceCategory } from "@/lib/types";
+
+const createCategoryValue = "__create_category__";
 
 export default function PostPage() {
   const router = useRouter();
   const { addCategory, addService, categories, currentUser, refreshAppState } = useTikep();
-  const defaultProvider = useMemo(() => {
-    return [currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ") || currentUser.username || "Penyedia Tikep";
+  const telegramProviderName = useMemo(() => {
+    const fullName = [currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ").trim();
+    return fullName || (currentUser.username ? `@${currentUser.username}` : "");
   }, [currentUser]);
   const [title, setTitle] = useState("");
   const [provider, setProvider] = useState("");
-  const [category, setCategory] = useState<ServiceCategory>("Desain");
+  const [category, setCategory] = useState<ServiceCategory>("");
   const [customCategory, setCustomCategory] = useState("");
-  const [price, setPrice] = useState("199000");
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreviewUrl, setCoverPreviewUrl] = useState("");
@@ -105,7 +110,7 @@ export default function PostPage() {
       setError("");
       await addService({
         title,
-        provider: provider.trim() || defaultProvider,
+        provider: providerName,
         category,
         price: Number(price),
         description,
@@ -113,9 +118,11 @@ export default function PostPage() {
       });
       setSubmitted(true);
       setTitle("");
-      setProvider("");
-      setCategory("Desain");
-      setPrice("199000");
+      if (!telegramProviderName) {
+        setProvider("");
+      }
+      setCategory("");
+      setPrice("");
       setDescription("");
       replaceCoverFile(null);
     } catch (submitError) {
@@ -135,6 +142,7 @@ export default function PostPage() {
       const createdCategory = await addCategory(name);
       setCategory(createdCategory);
       setCustomCategory("");
+      setCategoryModalOpen(false);
     } catch (categoryError) {
       setError(categoryError instanceof Error ? categoryError.message : "Kategori gagal ditambahkan atau sudah ada.");
     }
@@ -142,11 +150,21 @@ export default function PostPage() {
 
   const isBotConnected = Boolean(currentUser.telegramChatId && currentUser.botStartedAt);
   const hasTelegramUsername = Boolean(currentUser.username);
+  const shouldShowBotNotice = !isBotConnected || !hasTelegramUsername;
+  const providerName = telegramProviderName || provider.trim();
+  const providerReadOnly = Boolean(telegramProviderName);
+  const categoryOptions = useMemo<CustomSelectOption<string>[]>(() => {
+    return [
+      ...categories.map((item) => ({ value: item, label: item })),
+      { value: createCategoryValue, label: "Buat kategori", description: "Tambah kategori baru" },
+    ];
+  }, [categories]);
 
   const canSubmit =
     title.trim().length >= 4 &&
     Boolean(coverFile) &&
-    (provider.trim() || defaultProvider).length >= 2 &&
+    providerName.length >= 2 &&
+    category.trim().length >= 2 &&
     Number(price) > 0 &&
     description.trim().length >= 12;
 
@@ -165,47 +183,45 @@ export default function PostPage() {
           </div>
         </section>
 
-        <section className="rounded-lg border border-indigo-100 bg-indigo-50 p-3">
-          <div className="flex items-start gap-2">
-            <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" />
-            <div className="min-w-0 flex-1 space-y-2">
-              <p className="text-xs font-semibold leading-5 text-indigo-900">
-                Provider wajib sudah start bot Tikep dan punya username Telegram agar notifikasi pesanan bisa dikirim dan customer bisa menghubungi kamu.
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <span
-                  className={`inline-flex rounded-full px-2 py-1 text-xs font-bold ${
-                    isBotConnected ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                  }`}
-                >
-                  {isBotConnected ? "Bot terhubung" : "Bot belum terhubung"}
-                </span>
-                <span
-                  className={`inline-flex rounded-full px-2 py-1 text-xs font-bold ${
-                    hasTelegramUsername ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                  }`}
-                >
-                  {hasTelegramUsername ? `@${currentUser.username}` : "Username belum ada"}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-3">
-                {!isBotConnected && botLink ? (
-                  <a href={botLink} className="inline-flex text-xs font-bold text-indigo-700">
-                    Hubungkan bot
-                  </a>
-                ) : null}
-                <button
-                  type="button"
-                  onClick={() => refreshAppState().catch(() => undefined)}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-indigo-700"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  Cek ulang
-                </button>
+        {shouldShowBotNotice ? (
+          <section className="rounded-lg border border-indigo-100 bg-indigo-50 p-3">
+            <div className="flex items-start gap-2">
+              <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <p className="text-xs font-semibold leading-5 text-indigo-900">
+                  Hubungkan bot dan atur username Telegram agar notifikasi pesanan bisa dikirim.
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {!isBotConnected ? (
+                    <span className="inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-bold text-amber-700">
+                      Bot belum terhubung
+                    </span>
+                  ) : null}
+                  {!hasTelegramUsername ? (
+                    <span className="inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-bold text-amber-700">
+                      Username belum ada
+                    </span>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {!isBotConnected && botLink ? (
+                    <a href={botLink} className="inline-flex text-xs font-bold text-indigo-700">
+                      Hubungkan bot
+                    </a>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => refreshAppState().catch(() => undefined)}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-indigo-700"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Cek ulang
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        ) : null}
 
         {submitted ? (
           <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">
@@ -256,27 +272,34 @@ export default function PostPage() {
         <label className="block space-y-1.5">
           <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Penyedia</span>
           <input
-            value={provider}
+            value={providerReadOnly ? telegramProviderName : provider}
             onChange={(event) => setProvider(event.target.value)}
-            placeholder={defaultProvider}
-            className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+            readOnly={providerReadOnly}
+            placeholder="Nama penyedia"
+            className={`h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 ${
+              providerReadOnly ? "bg-gray-50 font-semibold text-gray-700" : ""
+            }`}
           />
+          {providerReadOnly ? (
+            <span className="text-xs font-medium text-gray-500">Nama penyedia menggunakan nama dari Telegram.</span>
+          ) : null}
         </label>
 
         <div className="grid grid-cols-2 gap-3">
           <label className="block space-y-1.5">
             <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Kategori</span>
-            <select
+            <CustomSelect
               value={category}
-              onChange={(event) => setCategory(event.target.value as ServiceCategory)}
-              className="h-11 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-            >
-              {categories.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
+              options={categoryOptions}
+              placeholder="Pilih kategori"
+              onChange={(value) => {
+                if (value === createCategoryValue) {
+                  setCategoryModalOpen(true);
+                  return;
+                }
+                setCategory(value);
+              }}
+            />
           </label>
 
           <label className="block space-y-1.5">
@@ -290,26 +313,6 @@ export default function PostPage() {
               className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
             />
           </label>
-        </div>
-
-        <div className="grid grid-cols-[1fr_auto] gap-3">
-          <label className="block space-y-1.5">
-            <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Kategori baru</span>
-            <input
-              value={customCategory}
-              onChange={(event) => setCustomCategory(event.target.value)}
-              placeholder="Contoh: Fotografi"
-              className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={handleAddCategory}
-            disabled={customCategory.trim().length < 2}
-            className="mt-6 h-11 rounded-lg border border-gray-200 px-4 text-sm font-bold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-300"
-          >
-            Tambah
-          </button>
         </div>
 
         <label className="block space-y-1.5">
@@ -340,6 +343,50 @@ export default function PostPage() {
           </button>
         </div>
       </form>
+
+      {categoryModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/30 p-4 sm:items-center sm:justify-center">
+          <section className="w-full rounded-lg bg-white p-4 shadow-xl sm:max-w-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-bold text-gray-900">Buat kategori</h2>
+              <button
+                type="button"
+                onClick={() => setCategoryModalOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-50"
+                aria-label="Tutup"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <label className="block space-y-1.5">
+              <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Nama kategori</span>
+              <input
+                value={customCategory}
+                onChange={(event) => setCustomCategory(event.target.value)}
+                placeholder="Contoh: Fotografi produk"
+                className="h-11 w-full rounded-lg border border-gray-200 px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              />
+            </label>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setCategoryModalOpen(false)}
+                className="h-11 rounded-lg border border-gray-200 px-4 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleAddCategory}
+                disabled={customCategory.trim().length < 2}
+                className="h-11 rounded-lg bg-indigo-600 px-4 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+              >
+                Simpan
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

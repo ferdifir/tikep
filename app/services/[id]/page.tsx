@@ -5,6 +5,7 @@ import Link from "next/link";
 import NextImage from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { CustomSelect } from "@/components/custom-select";
 import { EmptyState } from "@/components/empty-state";
 import { useTikep } from "@/components/app-provider";
 import { ServiceInquiryButton } from "@/components/service-inquiry-button";
@@ -266,22 +267,20 @@ export default function ServicePreviewPage() {
               {reviewInquiries.length ? (
                 <label className="block space-y-1.5">
                   <span className="text-xs font-bold uppercase tracking-wide text-indigo-700">Customer</span>
-                  <select
+                  <CustomSelect
                     value={selectedInquiryId}
-                    onChange={(event) => setSelectedInquiryId(event.target.value)}
-                    className="h-10 w-full rounded-lg border border-indigo-100 bg-white px-3 text-xs font-semibold text-gray-700 outline-none"
-                  >
-                    {reviewInquiries.map((inquiry) => (
-                      <option key={inquiry.id} value={inquiry.id}>
-                        {inquiry.customerLabel} -{" "}
-                        {inquiry.hasActiveInvite
-                          ? "invite aktif"
-                          : inquiry.canInvite
-                            ? "siap invite"
-                            : `siap ${new Date(inquiry.availableAt).toLocaleDateString("id-ID")}`}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSelectedInquiryId}
+                    buttonClassName="h-10 border-indigo-100 text-xs"
+                    options={reviewInquiries.map((inquiry) => ({
+                      value: inquiry.id,
+                      label: inquiry.customerLabel,
+                      description: inquiry.hasActiveInvite
+                        ? "invite aktif"
+                        : inquiry.canInvite
+                          ? "siap invite"
+                          : `siap ${new Date(inquiry.availableAt).toLocaleDateString("id-ID")}`,
+                    }))}
+                  />
                 </label>
               ) : (
                 <p className="text-xs font-semibold leading-5 text-indigo-700">

@@ -1,6 +1,6 @@
 import type { Service } from "@/lib/types";
 
-export const categories = ["Desain", "Marketing", "Teknologi", "Konten"];
+export const categories: string[] = [];
 
 export const seedServices: Service[] = [
   {

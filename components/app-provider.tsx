@@ -51,7 +51,7 @@ const defaultState: StoredState = {
     botStartedAt: new Date(0).toISOString(),
   },
   services: seedServices,
-  categories: ["Desain", "Marketing", "Teknologi", "Konten"],
+  categories: [],
   recommendedIds: [],
   reportedIds: [],
 };

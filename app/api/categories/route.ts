@@ -4,9 +4,24 @@ import { prisma } from "@/lib/prisma";
 import { getUserFromInitDataOrDemo } from "@/lib/request-user";
 import { slugify } from "@/lib/slugify";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const user = await getUserFromInitDataOrDemo(new URL(request.url).searchParams.get("initData")?.trim() || undefined).catch(
+    (error) => {
+      const response = authErrorResponse(error);
+      if (response) {
+        return response;
+      }
+      throw error;
+    },
+  );
+
+  if (user instanceof NextResponse) {
+    return user;
+  }
+
   const categories = await prisma.category.findMany({
-    orderBy: [{ isSystem: "desc" }, { name: "asc" }],
+    where: { createdByUserId: user.id, isSystem: false },
+    orderBy: [{ name: "asc" }],
     select: { id: true, name: true, slug: true, isSystem: true },
   });
 
@@ -37,7 +52,7 @@ export async function POST(request: Request) {
   const existingCategory = await prisma.category.findFirst({
     where: {
       slug,
-      OR: [{ isSystem: true }, { createdByUserId: user.id }],
+      createdByUserId: user.id,
     },
   });
 

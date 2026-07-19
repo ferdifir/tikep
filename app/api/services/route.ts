@@ -114,11 +114,12 @@ export async function POST(request: Request) {
       });
 
   const category = categoryId
-    ? await prisma.category.findUnique({ where: { id: categoryId } })
+    ? await prisma.category.findFirst({ where: { id: categoryId, createdByUserId: user.id, isSystem: false } })
     : await prisma.category.findFirst({
         where: {
           slug: slugify(categoryName),
-          OR: [{ isSystem: true }, { createdByUserId: user.id }],
+          createdByUserId: user.id,
+          isSystem: false,
         },
       });
 

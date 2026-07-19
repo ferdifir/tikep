@@ -23,6 +23,7 @@ export async function GET(request: Request) {
       include: serviceInclude,
     }),
     prisma.category.findMany({
+      where: { createdByUserId: user.id, isSystem: false },
       orderBy: [{ isSystem: "desc" }, { name: "asc" }],
       select: { id: true, name: true, slug: true, isSystem: true },
     }),
