@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isDeveloperUser } from "@/lib/admin-auth";
 import { authErrorResponse } from "@/lib/api-errors";
 import { mapService, serviceInclude } from "@/lib/db-mappers";
 import { prisma } from "@/lib/prisma";
@@ -24,7 +25,7 @@ export async function GET(request: Request) {
       include: serviceInclude,
     }),
     prisma.category.findMany({
-      where: { createdByUserId: user.id, isSystem: false },
+      where: { createdByUserId: user.id, isSystem: false, deletedAt: null },
       orderBy: [{ isSystem: "desc" }, { name: "asc" }],
       select: { id: true, name: true, slug: true, isSystem: true },
     }),
@@ -47,6 +48,7 @@ export async function GET(request: Request) {
       photoUrl: user.photoUrl,
       telegramChatId: user.telegramChatId,
       botStartedAt: user.botStartedAt?.toISOString() ?? null,
+      isDeveloper: isDeveloperUser(user),
     },
     services: services.map((service) => mapService(service, user.id)),
     categories,

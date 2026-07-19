@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   }
 
   const categories = await prisma.category.findMany({
-    where: { createdByUserId: user.id, isSystem: false },
+    where: { createdByUserId: user.id, isSystem: false, deletedAt: null },
     orderBy: [{ name: "asc" }],
     select: { id: true, name: true, slug: true, isSystem: true },
   });
@@ -53,6 +53,7 @@ export async function POST(request: Request) {
     where: {
       slug,
       createdByUserId: user.id,
+      deletedAt: null,
     },
   });
 

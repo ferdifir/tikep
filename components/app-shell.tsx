@@ -1,6 +1,6 @@
 "use client";
 
-import { Compass, Home, Plus, PlusSquare, SlidersHorizontal, User } from "lucide-react";
+import { Compass, Home, Plus, PlusSquare, Shield, SlidersHorizontal, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTikep } from "@/components/app-provider";
@@ -15,7 +15,10 @@ const navItems = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { homeFiltersOpen, toggleHomeFilters } = useTikep();
+  const { currentUser, homeFiltersOpen, toggleHomeFilters } = useTikep();
+  const visibleNavItems = currentUser.isDeveloper
+    ? [...navItems, { href: "/admin", label: "Admin", icon: Shield }]
+    : navItems;
   const showHeader = pathname === "/" || pathname === "/explore";
   const isPreviewRoute =
     pathname.startsWith("/services/") ||
@@ -63,7 +66,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1">{children}</main>
 
       <nav className="fixed bottom-0 z-50 flex w-full max-w-md items-center justify-between border-t border-gray-200 bg-white px-8 py-3">
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const active = pathname === item.href;
 

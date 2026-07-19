@@ -99,6 +99,9 @@ export const serviceInclude = {
     orderBy: {
       sortOrder: "asc" as const,
     },
+    where: {
+      deletedAt: null,
+    },
     take: 1,
     select: {
       url: true,

@@ -25,7 +25,7 @@ function toMediaResponse<
 
 export async function GET() {
   const media = await prisma.media.findMany({
-    where: { serviceId: null },
+    where: { serviceId: null, deletedAt: null },
     orderBy: [{ createdAt: "desc" }, { sortOrder: "asc" }],
     select: {
       id: true,

@@ -8,6 +8,16 @@ export function getInitDataFromRequestUrl(request: Request) {
   return new URL(request.url).searchParams.get("initData")?.trim() || undefined;
 }
 
+function assertUserCanAccessApp(user: { suspendedAt: Date | null; deletedAt: Date | null }) {
+  if (user.deletedAt) {
+    throw new AuthenticationError("Akun ini sudah dihapus.");
+  }
+
+  if (user.suspendedAt) {
+    throw new AuthenticationError("Akun ini sedang dinonaktifkan.");
+  }
+}
+
 export async function getUserFromInitDataOrDemo(initData?: string) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   const isProduction = process.env.NODE_ENV === "production";
@@ -47,6 +57,8 @@ export async function getUserFromInitDataOrDemo(initData?: string) {
       hasBotStartedAt: Boolean(user.botStartedAt),
     });
 
+    assertUserCanAccessApp(user);
+
     return user;
   }
 
@@ -75,6 +87,8 @@ export async function getUserFromInitDataOrDemo(initData?: string) {
         hasTelegramChatId: Boolean(session.user.telegramChatId),
         hasBotStartedAt: Boolean(session.user.botStartedAt),
       });
+
+      assertUserCanAccessApp(session.user);
 
       return session.user;
     }

@@ -40,6 +40,7 @@ type CurrentUser = {
   photoUrl: string | null;
   telegramChatId: string | null;
   botStartedAt: string | null;
+  isDeveloper: boolean;
 };
 
 const defaultState: StoredState = {
@@ -51,6 +52,7 @@ const defaultState: StoredState = {
     photoUrl: null,
     telegramChatId: null,
     botStartedAt: null,
+    isDeveloper: false,
   },
   services: [],
   categories: [],

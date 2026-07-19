@@ -22,6 +22,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const media = await prisma.media.findFirst({
     where: {
+      deletedAt: null,
       OR: [{ id }, { serviceId: id }],
     },
     select: {
