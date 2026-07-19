@@ -22,11 +22,12 @@ export default function ProfilePage() {
   const userDisplayName = [currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ");
   const profileName = myServices[0]?.provider || userDisplayName || currentUser.username || "User Tikep";
   const profileSubtitle = currentUser.username ? `@${currentUser.username}` : "Kreator Tikep";
+  const profilePhotoUrl = currentUser.photoUrl;
   const tabs: ProfileTabItem[] = [
-    { value: "services", label: "Produk", count: myServices.length, icon: ShieldCheck },
-    { value: "orders", label: "Order", count: inquiries.providerInquiries.length, icon: Inbox },
-    { value: "messages", label: "Pesan", count: inquiries.customerInquiries.length, icon: Send },
-    { value: "recommended", label: "Rekom", count: recommendedServices.length, icon: Heart },
+    { value: "services", label: "Produk", icon: ShieldCheck },
+    { value: "orders", label: "Order", icon: Inbox },
+    { value: "messages", label: "Pesan", icon: Send },
+    { value: "recommended", label: "Rekomendasi", icon: Heart },
   ];
 
   useEffect(() => {
@@ -50,7 +51,16 @@ export default function ProfilePage() {
     <div className="space-y-5 p-4">
       <section className="rounded-lg border border-gray-200 bg-gray-50 p-4">
         <div className="flex items-center gap-3">
-          <TikepLogo showWordmark={false} iconClassName="h-14 w-14" />
+          {profilePhotoUrl ? (
+            <div
+              className="h-14 w-14 shrink-0 rounded-full bg-cover bg-center shadow-sm ring-1 ring-gray-200"
+              style={{ backgroundImage: `url(${profilePhotoUrl})` }}
+              aria-label="Foto profil Telegram"
+              role="img"
+            />
+          ) : (
+            <TikepLogo showWordmark={false} iconClassName="h-14 w-14" />
+          )}
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-lg font-bold text-gray-900">{profileName}</h1>
             <p className="truncate text-sm text-gray-500">{profileSubtitle}</p>
@@ -106,16 +116,14 @@ export default function ProfilePage() {
                 key={tab.value}
                 type="button"
                 onClick={() => setActiveTab(tab.value)}
-                className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-md px-1 text-[11px] font-bold transition ${
+                className={`flex h-12 items-center justify-center rounded-md transition ${
                   selected ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500 hover:bg-white/70 hover:text-gray-700"
                 }`}
                 aria-pressed={selected}
+                aria-label={tab.label}
+                title={tab.label}
               >
-                <span className="flex items-center gap-1">
-                  <TabIcon className="h-3.5 w-3.5" />
-                  <span>{tab.count}</span>
-                </span>
-                <span className="max-w-full truncate">{tab.label}</span>
+                <TabIcon className="h-5 w-5" />
               </button>
             );
           })}
@@ -138,7 +146,6 @@ type ProfileTab = "services" | "orders" | "messages" | "recommended";
 type ProfileTabItem = {
   value: ProfileTab;
   label: string;
-  count: number;
   icon: typeof ShieldCheck;
 };
 
