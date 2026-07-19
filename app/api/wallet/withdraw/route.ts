@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { authErrorResponse } from "@/lib/api-errors";
 import { prisma } from "@/lib/prisma";
 import { getUserFromInitDataOrDemo } from "@/lib/request-user";
+import { getDeveloperChatId } from "@/lib/server-env";
 import { sendTelegramMessage } from "@/lib/telegram-bot";
 import { getOrCreateWallet } from "@/lib/wallets";
 import { formatRupiah, getWithdrawMethod } from "@/lib/withdraw-methods";
 
-const developerChatId = process.env.TELEGRAM_DEVELOPER_CHAT_ID ?? "7764382006";
+const developerChatId = getDeveloperChatId();
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
@@ -106,20 +107,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Saldo tidak cukup." }, { status: 400 });
   }
 
-  const notifyResult = await sendTelegramMessage({
-    chatId: developerChatId,
-    text: [
-      "Request withdraw Tikep",
-      `ID: ${withdraw.id}`,
-      `User: ${user.username ? `@${user.username}` : user.telegramId ?? user.id}`,
-      `Metode: ${method.label}`,
-      `Nama: ${withdraw.accountName}`,
-      `Tujuan: ${withdraw.accountNumber}`,
-      `Nominal: ${formatRupiah(withdraw.amount)}`,
-      `Admin: ${formatRupiah(withdraw.adminFee)}`,
-      `Diterima: ${formatRupiah(withdraw.netAmount)}`,
-    ].join("\n"),
-  });
+  const notifyResult = developerChatId
+    ? await sendTelegramMessage({
+        chatId: developerChatId,
+        text: [
+          "Request withdraw Tikep",
+          `ID: ${withdraw.id}`,
+          `User: ${user.username ? `@${user.username}` : user.telegramId ?? user.id}`,
+          `Metode: ${method.label}`,
+          `Nama: ${withdraw.accountName}`,
+          `Tujuan: ${withdraw.accountNumber}`,
+          `Nominal: ${formatRupiah(withdraw.amount)}`,
+          `Admin: ${formatRupiah(withdraw.adminFee)}`,
+          `Diterima: ${formatRupiah(withdraw.netAmount)}`,
+        ].join("\n"),
+      })
+    : { status: "not_configured" as const, error: "TELEGRAM_DEVELOPER_CHAT_ID belum dikonfigurasi." };
 
   if (notifyResult.status === "sent") {
     await prisma.withdrawRequest.update({

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { seedServices } from "@/lib/seed-data";
 import { getTelegramInitData } from "@/lib/telegram-webapp";
 import type { NewServiceInput, Service } from "@/lib/types";
@@ -73,6 +73,7 @@ function mapAppState(response: AppStateResponse): StoredState {
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<StoredState>(defaultState);
   const [homeFiltersOpen, setHomeFiltersOpen] = useState(false);
+  const sessionSyncedRef = useRef(false);
 
   const refreshAppState = useCallback(async () => {
     const initData = getTelegramInitData();
@@ -89,6 +90,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     queueMicrotask(() => {
+      const initData = getTelegramInitData();
+
+      if (initData && !sessionSyncedRef.current) {
+        sessionSyncedRef.current = true;
+        fetch("/api/telegram/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ initData }),
+        }).catch(() => undefined);
+      }
+
       refreshAppState().catch(() => setState(defaultState));
     });
   }, [refreshAppState]);

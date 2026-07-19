@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { validateTelegramInitData } from "@/lib/telegram-auth";
+import { logTelegramAuthDebug } from "@/lib/telegram-auth-debug";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as { initData?: string };
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
 
   try {
     const validated = validateTelegramInitData(initData, botToken);
+    const expiresAt = new Date(validated.authDate.getTime() + 24 * 60 * 60 * 1000);
     const user = await prisma.user.upsert({
       where: {
         telegramId: String(validated.user.id),
@@ -45,8 +47,18 @@ export async function POST(request: Request) {
         authDate: validated.authDate,
         hash: validated.hash,
         rawInitData: validated.rawInitData,
-        expiresAt: new Date(validated.authDate.getTime() + 24 * 60 * 60 * 1000),
+        expiresAt,
       },
+    });
+
+    logTelegramAuthDebug({
+      event: "session_created",
+      telegramId: validated.user.id,
+      username: validated.user.username,
+      authDate: validated.authDate,
+      expiresAt,
+      hasTelegramChatId: Boolean(user.telegramChatId),
+      hasBotStartedAt: Boolean(user.botStartedAt),
     });
 
     return NextResponse.json({
@@ -61,7 +73,11 @@ export async function POST(request: Request) {
         botStartedAt: user.botStartedAt?.toISOString() ?? null,
       },
     });
-  } catch {
+  } catch (error) {
+    logTelegramAuthDebug({
+      event: "session_invalid",
+      error: error instanceof Error ? error.message : "Unknown Telegram session error",
+    });
     return NextResponse.json({ error: "initData Telegram tidak valid." }, { status: 401 });
   }
 }
