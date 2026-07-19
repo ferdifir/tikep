@@ -1,6 +1,5 @@
 import "server-only";
 import { AuthenticationError } from "@/lib/auth-errors";
-import { getDemoUser } from "@/lib/demo-user";
 import { prisma } from "@/lib/prisma";
 import { validateTelegramInitData } from "@/lib/telegram-auth";
 import { logTelegramAuthDebug } from "@/lib/telegram-auth-debug";
@@ -89,5 +88,5 @@ export async function getUserFromInitDataOrDemo(initData?: string) {
     throw new AuthenticationError();
   }
 
-  return getDemoUser();
+  throw new AuthenticationError("Session Telegram tidak tersedia. Buka lewat Mini App atau sinkronkan session production untuk local development.");
 }

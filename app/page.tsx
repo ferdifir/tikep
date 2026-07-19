@@ -6,12 +6,13 @@ import { ServiceCard } from "@/components/service-card";
 import { useTikep } from "@/components/app-provider";
 import { CustomSelect } from "@/components/custom-select";
 import { EmptyState } from "@/components/empty-state";
+import { hasRating } from "@/lib/service-utils";
 import type { ServiceCategory } from "@/lib/types";
 
 type RatingFilter = "all" | "recommended" | "risk";
 
 export default function HomePage() {
-  const { services, categories, recommendedIds, homeFiltersOpen } = useTikep();
+  const { services, categories, recommendedIds, homeFiltersOpen, isAppStateLoading } = useTikep();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<ServiceCategory | "Semua">("Semua");
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>("all");
@@ -29,8 +30,8 @@ export default function HomePage() {
       const matchesCategory = category === "Semua" || service.category === category;
       const matchesRating =
         ratingFilter === "all" ||
-        (ratingFilter === "recommended" && service.rating >= 4) ||
-        (ratingFilter === "risk" && service.rating < 4);
+        (ratingFilter === "recommended" && hasRating(service.rating) && service.rating >= 4) ||
+        (ratingFilter === "risk" && hasRating(service.rating) && service.rating < 4);
 
       return matchesQuery && matchesCategory && matchesRating;
     });
@@ -87,7 +88,20 @@ export default function HomePage() {
         </section>
       ) : null}
 
-      {filteredServices.length ? (
+      {isAppStateLoading ? (
+        <section className="space-y-4">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+              <div className="aspect-[4/3] animate-pulse bg-gray-100" />
+              <div className="space-y-3 p-4">
+                <div className="h-4 w-2/3 animate-pulse rounded bg-gray-100" />
+                <div className="h-3 w-full animate-pulse rounded bg-gray-100" />
+                <div className="h-3 w-1/2 animate-pulse rounded bg-gray-100" />
+              </div>
+            </div>
+          ))}
+        </section>
+      ) : filteredServices.length ? (
         <section className="space-y-6">
           {filteredServices.map((service) => (
             <ServiceCard key={service.id} service={service} />

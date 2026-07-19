@@ -7,7 +7,7 @@ import { useState } from "react";
 import { ServiceInquiryButton } from "@/components/service-inquiry-button";
 import { formatCurrency } from "@/lib/format";
 import { shareService } from "@/lib/share-links";
-import { getLatestReviews, getProviderSlug, getRatingBorderStyle, getRatingTone } from "@/lib/service-utils";
+import { getLatestReviews, getProviderSlug, getRatingBorderStyle, getRatingTone, hasRating } from "@/lib/service-utils";
 import type { IconMap, Service } from "@/lib/types";
 import { useTikep } from "@/components/app-provider";
 
@@ -24,6 +24,7 @@ export function ServiceCard({ service }: { service: Service }) {
   const reported = reportedIds.includes(service.id);
   const PreviewIcon = iconMap[service.iconName] ?? Layers;
   const latestReviews = getLatestReviews(service.reviews, 2);
+  const showRating = hasRating(service.rating);
   const [shareStatus, setShareStatus] = useState("");
 
   async function handleShare() {
@@ -49,12 +50,14 @@ export function ServiceCard({ service }: { service: Service }) {
             <span className="text-xs text-gray-500">Oleh {service.provider}</span>
           </div>
         </Link>
-        <span
-          className={`flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold ${getRatingTone(service.rating)}`}
-        >
-          <Star className="h-3.5 w-3.5 fill-current" />
-          {service.rating.toFixed(1)}
-        </span>
+        {showRating ? (
+          <span
+            className={`flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold ${getRatingTone(service.rating)}`}
+          >
+            <Star className="h-3.5 w-3.5 fill-current" />
+            {service.rating.toFixed(1)}
+          </span>
+        ) : null}
       </div>
 
       <Link

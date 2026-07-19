@@ -16,11 +16,18 @@ export default function ProfilePage() {
     providerInquiries: InquiryItem[];
     customerInquiries: InquiryItem[];
   }>({ providerInquiries: [], customerInquiries: [] });
+  const [activeTab, setActiveTab] = useState<ProfileTab>("services");
   const myServices = services.filter((service) => service.owner === "me");
   const recommendedServices = services.filter((service) => recommendedIds.includes(service.id));
   const userDisplayName = [currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ");
   const profileName = myServices[0]?.provider || userDisplayName || currentUser.username || "User Tikep";
   const profileSubtitle = currentUser.username ? `@${currentUser.username}` : "Kreator Tikep";
+  const tabs: ProfileTabItem[] = [
+    { value: "services", label: "Produk", count: myServices.length, icon: ShieldCheck },
+    { value: "orders", label: "Order", count: inquiries.providerInquiries.length, icon: Inbox },
+    { value: "messages", label: "Pesan", count: inquiries.customerInquiries.length, icon: Send },
+    { value: "recommended", label: "Rekom", count: recommendedServices.length, icon: Heart },
+  ];
 
   useEffect(() => {
     const initData = getTelegramInitData();
@@ -89,55 +96,51 @@ export default function ProfilePage() {
       </section>
 
       <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4 text-indigo-600" />
-          <h2 className="text-sm font-bold text-gray-900">Produk/layanan saya</h2>
-        </div>
-        {myServices.length ? (
-          <ProfileServiceGrid services={myServices} />
-        ) : (
-          <EmptyState title="Belum ada produk/layanan" body="Buat produk atau layanan pertama dari tab Post." />
-        )}
-      </section>
+        <div className="grid grid-cols-4 gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
+          {tabs.map((tab) => {
+            const TabIcon = tab.icon;
+            const selected = activeTab === tab.value;
 
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Inbox className="h-4 w-4 text-indigo-600" />
-          <h2 className="text-sm font-bold text-gray-900">Order masuk</h2>
+            return (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => setActiveTab(tab.value)}
+                className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-md px-1 text-[11px] font-bold transition ${
+                  selected ? "bg-white text-indigo-700 shadow-sm" : "text-gray-500 hover:bg-white/70 hover:text-gray-700"
+                }`}
+                aria-pressed={selected}
+              >
+                <span className="flex items-center gap-1">
+                  <TabIcon className="h-3.5 w-3.5" />
+                  <span>{tab.count}</span>
+                </span>
+                <span className="max-w-full truncate">{tab.label}</span>
+              </button>
+            );
+          })}
         </div>
-        {inquiries.providerInquiries.length ? (
-          <InquiryList items={inquiries.providerInquiries} mode="provider" />
-        ) : (
-          <EmptyState title="Belum ada order masuk" body="Order dari tombol Pesan akan muncul di sini." />
-        )}
-      </section>
 
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Send className="h-4 w-4 text-cyan-600" />
-          <h2 className="text-sm font-bold text-gray-900">Riwayat pesan</h2>
-        </div>
-        {inquiries.customerInquiries.length ? (
-          <InquiryList items={inquiries.customerInquiries} mode="customer" />
-        ) : (
-          <EmptyState title="Belum ada pesan" body="Produk atau layanan yang kamu pesan akan tampil di sini." />
-        )}
-      </section>
-
-      <section className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Heart className="h-4 w-4 text-emerald-600" />
-          <h2 className="text-sm font-bold text-gray-900">Direkomendasikan</h2>
-        </div>
-        {recommendedServices.length ? (
-          <ProfileServiceGrid services={recommendedServices} />
-        ) : (
-          <EmptyState title="Belum ada rekomendasi" body="Tekan rekomendasikan pada produk atau layanan yang menurut Anda layak." />
-        )}
+        <ProfileTabPanel
+          activeTab={activeTab}
+          myServices={myServices}
+          recommendedServices={recommendedServices}
+          providerInquiries={inquiries.providerInquiries}
+          customerInquiries={inquiries.customerInquiries}
+        />
       </section>
     </div>
   );
 }
+
+type ProfileTab = "services" | "orders" | "messages" | "recommended";
+
+type ProfileTabItem = {
+  value: ProfileTab;
+  label: string;
+  count: number;
+  icon: typeof ShieldCheck;
+};
 
 type InquiryItem = {
   id: string;
@@ -162,6 +165,50 @@ type InquiryItem = {
   createdAt: string;
   updatedAt: string;
 };
+
+function ProfileTabPanel({
+  activeTab,
+  myServices,
+  recommendedServices,
+  providerInquiries,
+  customerInquiries,
+}: {
+  activeTab: ProfileTab;
+  myServices: Parameters<typeof ProfileServiceGrid>[0]["services"];
+  recommendedServices: Parameters<typeof ProfileServiceGrid>[0]["services"];
+  providerInquiries: InquiryItem[];
+  customerInquiries: InquiryItem[];
+}) {
+  if (activeTab === "services") {
+    return myServices.length ? (
+      <ProfileServiceGrid services={myServices} />
+    ) : (
+      <EmptyState title="Belum ada produk/layanan" body="Buat produk atau layanan pertama dari tab Post." />
+    );
+  }
+
+  if (activeTab === "orders") {
+    return providerInquiries.length ? (
+      <InquiryList items={providerInquiries} mode="provider" />
+    ) : (
+      <EmptyState title="Belum ada order masuk" body="Order dari tombol Pesan akan muncul di sini." />
+    );
+  }
+
+  if (activeTab === "messages") {
+    return customerInquiries.length ? (
+      <InquiryList items={customerInquiries} mode="customer" />
+    ) : (
+      <EmptyState title="Belum ada pesan" body="Produk atau layanan yang kamu pesan akan tampil di sini." />
+    );
+  }
+
+  return recommendedServices.length ? (
+    <ProfileServiceGrid services={recommendedServices} />
+  ) : (
+    <EmptyState title="Belum ada rekomendasi" body="Tekan rekomendasikan pada produk atau layanan yang menurut Anda layak." />
+  );
+}
 
 function getStatusLabel(status: string) {
   if (status === "REQUESTED") {

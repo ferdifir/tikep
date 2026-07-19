@@ -72,6 +72,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Data produk/layanan belum lengkap." }, { status: 400 });
   }
 
+  if (!categoryId && categoryName.length < 2) {
+    return NextResponse.json({ error: "Kategori wajib dipilih atau dibuat terlebih dahulu." }, { status: 400 });
+  }
+
   if (!(coverFile instanceof File)) {
     return NextResponse.json({ error: "Cover foto wajib dipilih." }, { status: 400 });
   }
@@ -123,13 +127,17 @@ export async function POST(request: Request) {
         },
       });
 
+  if (categoryId && !category) {
+    return NextResponse.json({ error: "Kategori tidak ditemukan." }, { status: 404 });
+  }
+
   const usableCategory =
     category ??
     (await prisma.category.create({
       data: {
         createdByUserId: user.id,
-        slug: slugify(categoryName || "Lainnya"),
-        name: categoryName || "Lainnya",
+        slug: slugify(categoryName),
+        name: categoryName,
         isSystem: false,
       },
     }));
@@ -144,7 +152,7 @@ export async function POST(request: Request) {
       price,
       ratingSnapshot: 0,
       description,
-      iconName: usableCategory.name === "Teknologi" ? "workflow" : usableCategory.name === "Konten" ? "pen-line" : "layers",
+      iconName: "layers",
       previewLabel: "Pratinjau Produk/Layanan Baru",
       ownerKind: "me",
       media: {

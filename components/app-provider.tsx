@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { seedServices } from "@/lib/seed-data";
 import { getTelegramInitData } from "@/lib/telegram-webapp";
 import type { NewServiceInput, Service } from "@/lib/types";
 
@@ -11,6 +10,7 @@ type AppContextValue = {
   categories: string[];
   recommendedIds: string[];
   reportedIds: string[];
+  isAppStateLoading: boolean;
   homeFiltersOpen: boolean;
   refreshAppState: () => Promise<void>;
   toggleHomeFilters: () => void;
@@ -42,15 +42,15 @@ type CurrentUser = {
 
 const defaultState: StoredState = {
   currentUser: {
-    id: "demo",
-    username: "tikep_demo",
-    firstName: "Tikep",
-    lastName: "Studio",
+    id: "",
+    username: null,
+    firstName: null,
+    lastName: null,
     photoUrl: null,
-    telegramChatId: "demo-tikep-chat",
-    botStartedAt: new Date(0).toISOString(),
+    telegramChatId: null,
+    botStartedAt: null,
   },
-  services: seedServices,
+  services: [],
   categories: [],
   recommendedIds: [],
   reportedIds: [],
@@ -72,20 +72,26 @@ function mapAppState(response: AppStateResponse): StoredState {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<StoredState>(defaultState);
+  const [isAppStateLoading, setIsAppStateLoading] = useState(true);
   const [homeFiltersOpen, setHomeFiltersOpen] = useState(false);
   const sessionSyncedRef = useRef(false);
 
   const refreshAppState = useCallback(async () => {
-    const initData = getTelegramInitData();
-    const url = initData ? `/api/app-state?initData=${encodeURIComponent(initData)}` : "/api/app-state";
-    const response = await fetch(url);
+    setIsAppStateLoading(true);
+    try {
+      const initData = getTelegramInitData();
+      const url = initData ? `/api/app-state?initData=${encodeURIComponent(initData)}` : "/api/app-state";
+      const response = await fetch(url);
 
-    if (!response.ok) {
-      throw new Error("Failed to load app state");
+      if (!response.ok) {
+        throw new Error("Failed to load app state");
+      }
+
+      const data = (await response.json()) as AppStateResponse;
+      setState(mapAppState(data));
+    } finally {
+      setIsAppStateLoading(false);
     }
-
-    const data = (await response.json()) as AppStateResponse;
-    setState(mapAppState(data));
   }, []);
 
   useEffect(() => {
@@ -101,7 +107,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }).catch(() => undefined);
       }
 
-      refreshAppState().catch(() => setState(defaultState));
+      refreshAppState().catch(() => {
+        setState(defaultState);
+        setIsAppStateLoading(false);
+      });
     });
   }, [refreshAppState]);
 
@@ -112,6 +121,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       categories: state.categories,
       recommendedIds: state.recommendedIds,
       reportedIds: state.reportedIds,
+      isAppStateLoading,
       homeFiltersOpen,
       refreshAppState,
       toggleHomeFilters() {
@@ -217,7 +227,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return data.category.name;
       },
     }),
-    [homeFiltersOpen, refreshAppState, state],
+    [homeFiltersOpen, isAppStateLoading, refreshAppState, state],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

@@ -1,19 +1,22 @@
 import type { Review, Service } from "@/lib/types";
 
-export const mediaCovers = [
-  "https://images.unsplash.com/photo-1558655146-9f40138edfeb?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&w=600&q=80",
-];
-
 export function getLatestReviews(reviews: Review[], limit?: number) {
   const sortedReviews = [...reviews].sort((first, second) => (second.createdAt ?? "").localeCompare(first.createdAt ?? ""));
 
   return typeof limit === "number" ? sortedReviews.slice(0, limit) : sortedReviews;
 }
 
+export function hasRating(rating: number) {
+  return rating > 0;
+}
+
 export function getRatingBorderStyle(rating: number) {
+  if (!hasRating(rating)) {
+    return {
+      background: "rgb(229 231 235)",
+    };
+  }
+
   const clampedRating = Math.max(0, Math.min(5, rating));
   const hue = Math.round((clampedRating / 5) ** 1.7 * 135);
 
@@ -53,12 +56,4 @@ export function getProviderSlug(provider: string) {
 
 export function findServiceByProviderSlug(services: Service[], slug: string) {
   return services.find((service) => getProviderSlug(service.provider) === slug);
-}
-
-export function getServiceMedia(serviceId: string, index: number) {
-  return {
-    cover: mediaCovers[index % mediaCovers.length],
-    type: index % 3 === 1 ? "video" : "photo",
-    title: `Media ${serviceId}`,
-  } as const;
 }

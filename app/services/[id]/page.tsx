@@ -11,7 +11,7 @@ import { useTikep } from "@/components/app-provider";
 import { ServiceInquiryButton } from "@/components/service-inquiry-button";
 import { formatCurrency } from "@/lib/format";
 import { shareService } from "@/lib/share-links";
-import { getLatestReviews, getProviderSlug, getRatingCircleStyle } from "@/lib/service-utils";
+import { getLatestReviews, getProviderSlug, getRatingCircleStyle, hasRating } from "@/lib/service-utils";
 import { getTelegramInitData } from "@/lib/telegram-webapp";
 import type { IconMap } from "@/lib/types";
 
@@ -86,6 +86,7 @@ export default function ServicePreviewPage() {
   const recommended = recommendedIds.includes(service.id);
   const reported = reportedIds.includes(service.id);
   const reviews = getLatestReviews(service.reviews);
+  const showRating = hasRating(service.rating);
 
   async function handleCreateReviewInvite() {
     if (!service || !selectedInquiryId) {
@@ -173,13 +174,17 @@ export default function ServicePreviewPage() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <span className="text-sm font-bold text-gray-900">Preview</span>
-        <span
-          className="flex h-10 w-10 items-center justify-center rounded-full text-xs font-black text-white shadow-sm"
-          style={getRatingCircleStyle(service.rating)}
-          aria-label={`Rating ${service.rating.toFixed(1)}`}
-        >
-          {service.rating.toFixed(1)}
-        </span>
+        {showRating ? (
+          <span
+            className="flex h-10 w-10 items-center justify-center rounded-full text-xs font-black text-white shadow-sm"
+            style={getRatingCircleStyle(service.rating)}
+            aria-label={`Rating ${service.rating.toFixed(1)}`}
+          >
+            {service.rating.toFixed(1)}
+          </span>
+        ) : (
+          <span className="h-10 w-10" aria-hidden="true" />
+        )}
       </header>
 
       <article className="m-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { EmptyState } from "@/components/empty-state";
 import { ProfileServiceGrid } from "@/components/profile-service-grid";
 import { useTikep } from "@/components/app-provider";
-import { findServiceByProviderSlug, getLatestReviews, getProviderSlug } from "@/lib/service-utils";
+import { findServiceByProviderSlug, getLatestReviews, getProviderSlug, hasRating } from "@/lib/service-utils";
 
 export default function ProviderPreviewPage() {
   const params = useParams<{ slug: string }>();
@@ -31,8 +31,9 @@ export default function ProviderPreviewPage() {
 
   const providerServices = services.filter((service) => getProviderSlug(service.provider) === params.slug);
   const reviews = getLatestReviews(providerServices.flatMap((service) => service.reviews), 5);
+  const ratedServices = providerServices.filter((service) => hasRating(service.rating));
   const averageRating =
-    providerServices.reduce((total, service) => total + service.rating, 0) / Math.max(providerServices.length, 1);
+    ratedServices.reduce((total, service) => total + service.rating, 0) / Math.max(ratedServices.length, 1);
   const recommendedCount = providerServices.filter((service) => recommendedIds.includes(service.id)).length;
 
   return (
@@ -61,10 +62,14 @@ export default function ProviderPreviewPage() {
             <p className="text-[11px] font-medium text-gray-500">Post</p>
           </div>
           <div className="rounded-lg bg-white p-3">
-            <p className="flex items-center justify-center gap-1 text-lg font-bold text-amber-600">
-              <Star className="h-4 w-4 fill-current" />
-              {averageRating.toFixed(1)}
-            </p>
+            {ratedServices.length ? (
+              <p className="flex items-center justify-center gap-1 text-lg font-bold text-amber-600">
+                <Star className="h-4 w-4 fill-current" />
+                {averageRating.toFixed(1)}
+              </p>
+            ) : (
+              <p className="text-lg font-bold text-gray-400">-</p>
+            )}
             <p className="text-[11px] font-medium text-gray-500">Rating</p>
           </div>
           <div className="rounded-lg bg-white p-3">
