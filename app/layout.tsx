@@ -8,8 +8,8 @@ import { TelegramStartRouter } from "@/components/telegram-start-router";
 import { appVersion } from "@/lib/app-version";
 
 export const metadata: Metadata = {
-  title: "Tikep - Katalog Layanan Digital",
-  description: "Katalog sosial untuk menemukan, merekomendasikan, dan melaporkan layanan digital.",
+  title: "Tikep - Katalog Produk dan Layanan Digital",
+  description: "Katalog sosial untuk menemukan, merekomendasikan, dan melaporkan produk serta layanan digital.",
   other: {
     "app-version": appVersion,
   },

@@ -180,7 +180,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         if (!response.ok) {
           const data = (await response.json().catch(() => ({}))) as { error?: string };
-          throw new Error(data.error ?? "Gagal menambahkan layanan.");
+          throw new Error(data.error ?? "Gagal menambahkan produk/layanan.");
         }
 
         const data = (await response.json()) as { service: Service };

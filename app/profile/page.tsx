@@ -91,12 +91,12 @@ export default function ProfilePage() {
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-indigo-600" />
-          <h2 className="text-sm font-bold text-gray-900">Layanan saya</h2>
+          <h2 className="text-sm font-bold text-gray-900">Produk/layanan saya</h2>
         </div>
         {myServices.length ? (
           <ProfileServiceGrid services={myServices} />
         ) : (
-          <EmptyState title="Belum ada layanan" body="Buat layanan pertama dari tab Post." />
+          <EmptyState title="Belum ada produk/layanan" body="Buat produk atau layanan pertama dari tab Post." />
         )}
       </section>
 
@@ -120,7 +120,7 @@ export default function ProfilePage() {
         {inquiries.customerInquiries.length ? (
           <InquiryList items={inquiries.customerInquiries} mode="customer" />
         ) : (
-          <EmptyState title="Belum ada pesan" body="Layanan yang kamu pesan akan tampil di sini." />
+          <EmptyState title="Belum ada pesan" body="Produk atau layanan yang kamu pesan akan tampil di sini." />
         )}
       </section>
 
@@ -132,7 +132,7 @@ export default function ProfilePage() {
         {recommendedServices.length ? (
           <ProfileServiceGrid services={recommendedServices} />
         ) : (
-          <EmptyState title="Belum ada rekomendasi" body="Tekan rekomendasikan pada layanan yang menurut Anda layak." />
+          <EmptyState title="Belum ada rekomendasi" body="Tekan rekomendasikan pada produk atau layanan yang menurut Anda layak." />
         )}
       </section>
     </div>

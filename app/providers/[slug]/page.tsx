@@ -77,7 +77,7 @@ export default function ProviderPreviewPage() {
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <ShieldCheck className="h-4 w-4 text-indigo-600" />
-          <h2 className="text-sm font-bold text-gray-900">Produk dan jasa</h2>
+          <h2 className="text-sm font-bold text-gray-900">Produk dan layanan</h2>
         </div>
         <ProfileServiceGrid services={providerServices} />
       </section>

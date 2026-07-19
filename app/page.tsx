@@ -45,7 +45,7 @@ export default function HomePage() {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Cari layanan, penyedia, kategori"
+              placeholder="Cari produk, layanan, penyedia, kategori"
               className="h-11 w-full rounded-lg border border-gray-200 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
             />
           </div>
@@ -94,12 +94,12 @@ export default function HomePage() {
           ))}
         </section>
       ) : (
-        <EmptyState title="Tidak ada layanan" body="Coba kata kunci, kategori, atau filter rating yang berbeda." />
+        <EmptyState title="Tidak ada produk/layanan" body="Coba kata kunci, kategori, atau filter rating yang berbeda." />
       )}
 
       {recommendedIds.length ? (
         <p className="pb-1 text-center text-xs font-medium text-gray-500">
-          {recommendedIds.length} layanan sudah masuk daftar rekomendasi Anda.
+          {recommendedIds.length} produk/layanan sudah masuk daftar rekomendasi Anda.
         </p>
       ) : null}
     </div>

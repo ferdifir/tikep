@@ -220,7 +220,7 @@ export default function ServicePreviewPage() {
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-gray-100 px-2 py-1 text-[11px] font-semibold text-gray-600">{service.category}</span>
             {service.owner === "me" ? (
-              <span className="rounded-full bg-cyan-50 px-2 py-1 text-[11px] font-semibold text-cyan-700">Layanan saya</span>
+              <span className="rounded-full bg-cyan-50 px-2 py-1 text-[11px] font-semibold text-cyan-700">Milik saya</span>
             ) : null}
           </div>
           <p className="text-sm leading-6 text-gray-600">{service.description}</p>

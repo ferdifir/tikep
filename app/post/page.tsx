@@ -126,7 +126,7 @@ export default function PostPage() {
       setDescription("");
       replaceCoverFile(null);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Layanan gagal ditambahkan.");
+      setError(submitError instanceof Error ? submitError.message : "Produk/layanan gagal ditambahkan.");
     }
   }
 
@@ -177,7 +177,7 @@ export default function PostPage() {
               <PlusCircle className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-gray-900">Buat layanan</h1>
+              <h1 className="text-base font-bold text-gray-900">Buat produk/layanan</h1>
               <p className="text-xs leading-5 text-gray-500">Post baru akan muncul di feed dan profil.</p>
             </div>
           </div>
@@ -226,7 +226,7 @@ export default function PostPage() {
         {submitted ? (
           <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-700">
             <CheckCircle2 className="h-4 w-4" />
-            Layanan berhasil ditambahkan.
+            Produk/layanan berhasil ditambahkan.
           </div>
         ) : null}
 
@@ -243,7 +243,7 @@ export default function PostPage() {
               <div className="relative aspect-square">
                 {coverPreviewUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={coverPreviewUrl} alt="Preview cover layanan" className="h-full w-full object-cover" />
+                  <img src={coverPreviewUrl} alt="Preview cover produk atau layanan" className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-gray-400">
                     <PlusCircle className="h-6 w-6" />
@@ -260,7 +260,7 @@ export default function PostPage() {
         </label>
 
         <label className="block space-y-1.5">
-          <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Judul layanan</span>
+          <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Judul produk/layanan</span>
           <input
             value={title}
             onChange={(event) => setTitle(event.target.value)}
@@ -320,7 +320,7 @@ export default function PostPage() {
           <textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="Jelaskan hasil kerja, deliverable, dan batasan layanan."
+            placeholder="Jelaskan produk, hasil kerja, deliverable, dan batasannya."
             rows={5}
             className="w-full resize-none rounded-lg border border-gray-200 px-3 py-3 text-sm leading-6 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
           />

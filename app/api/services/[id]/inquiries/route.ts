@@ -34,7 +34,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json(
       {
         code: "CUSTOMER_BOT_NOT_CONNECTED",
-        error: "Hubungkan bot Tikep terlebih dahulu sebelum pesan layanan.",
+        error: "Hubungkan bot Tikep terlebih dahulu sebelum pesan produk/layanan.",
       },
       { status: 403 },
     );
@@ -52,7 +52,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   });
 
   if (!service) {
-    return NextResponse.json({ error: "Layanan tidak ditemukan." }, { status: 404 });
+    return NextResponse.json({ error: "Produk/layanan tidak ditemukan." }, { status: 404 });
   }
 
   const providerUser = service.provider.owner;
@@ -62,7 +62,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   }
 
   if (providerUser.id === customer.id) {
-    return NextResponse.json({ error: "Kamu tidak bisa memesan layanan sendiri." }, { status: 409 });
+    return NextResponse.json({ error: "Kamu tidak bisa memesan produk/layanan sendiri." }, { status: 409 });
   }
 
   const message = body.message?.trim() || null;
@@ -96,8 +96,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   const notification = await sendTelegramMessage({
     chatId: providerUser.telegramChatId,
     text: [
-      "Ada user ingin pesan layanan Tikep.",
-      `Layanan: ${service.title}`,
+      "Ada user ingin pesan produk/layanan Tikep.",
+      `Produk/layanan: ${service.title}`,
       `Customer: ${getUserLabel(customer)}`,
       message ? `Pesan: ${message}` : null,
     ]

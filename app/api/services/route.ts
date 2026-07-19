@@ -30,7 +30,7 @@ export async function POST(request: Request) {
 
   if (!form) {
     const response = authErrorResponse(await getUserFromInitDataOrDemo(undefined).catch((error) => error));
-    return response ?? NextResponse.json({ error: "Form layanan tidak valid." }, { status: 400 });
+    return response ?? NextResponse.json({ error: "Form produk/layanan tidak valid." }, { status: 400 });
   }
 
   const initData = typeof form.get("initData") === "string" ? String(form.get("initData")).trim() : undefined;
@@ -48,14 +48,14 @@ export async function POST(request: Request) {
 
   if (!user.botStartedAt || !user.telegramChatId) {
     return NextResponse.json(
-      { error: "Hubungkan bot Tikep terlebih dahulu sebelum membuat layanan." },
+      { error: "Hubungkan bot Tikep terlebih dahulu sebelum membuat produk/layanan." },
       { status: 403 },
     );
   }
 
   if (!user.username) {
     return NextResponse.json(
-      { error: "Username Telegram wajib diatur sebelum membuat layanan agar customer bisa menghubungi provider." },
+      { error: "Username Telegram wajib diatur sebelum membuat produk/layanan agar customer bisa menghubungi provider." },
       { status: 403 },
     );
   }
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
   const price = Number(form.get("price"));
 
   if (title.length < 4 || providerName.length < 2 || !Number.isFinite(price) || price <= 0 || description.length < 12) {
-    return NextResponse.json({ error: "Data layanan belum lengkap." }, { status: 400 });
+    return NextResponse.json({ error: "Data produk/layanan belum lengkap." }, { status: 400 });
   }
 
   if (!(coverFile instanceof File)) {
@@ -145,7 +145,7 @@ export async function POST(request: Request) {
       ratingSnapshot: 0,
       description,
       iconName: usableCategory.name === "Teknologi" ? "workflow" : usableCategory.name === "Konten" ? "pen-line" : "layers",
-      previewLabel: "Pratinjau Layanan Baru",
+      previewLabel: "Pratinjau Produk/Layanan Baru",
       ownerKind: "me",
       media: {
         create: {

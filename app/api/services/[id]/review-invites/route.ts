@@ -37,7 +37,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   });
 
   if (!service) {
-    return NextResponse.json({ error: "Layanan tidak ditemukan." }, { status: 404 });
+    return NextResponse.json({ error: "Produk/layanan tidak ditemukan." }, { status: 404 });
   }
 
   if (service.provider.ownerUserId !== providerUser.id) {
@@ -118,7 +118,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   });
 
   if (!service) {
-    return NextResponse.json({ error: "Layanan tidak ditemukan." }, { status: 404 });
+    return NextResponse.json({ error: "Produk/layanan tidak ditemukan." }, { status: 404 });
   }
 
   if (service.provider.ownerUserId !== providerUser.id) {

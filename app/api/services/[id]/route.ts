@@ -10,7 +10,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   });
 
   if (!service) {
-    return NextResponse.json({ error: "Layanan tidak ditemukan." }, { status: 404 });
+    return NextResponse.json({ error: "Produk/layanan tidak ditemukan." }, { status: 404 });
   }
 
   return NextResponse.json({ service: mapService(service) });

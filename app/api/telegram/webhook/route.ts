@@ -195,7 +195,7 @@ async function listPendingInquiries() {
     .map((inquiry) =>
       [
         `ID: ${inquiry.id}`,
-        `Layanan: ${inquiry.service.title}`,
+        `Produk/layanan: ${inquiry.service.title}`,
         `Provider: ${inquiry.provider.owner ? getUserLabel(inquiry.provider.owner) : inquiry.provider.name}`,
         `Customer: ${getUserLabel(inquiry.customerUser)}`,
         `Notif provider: ${inquiry.providerNotificationStatus ?? "-"}`,
@@ -233,7 +233,7 @@ async function getInquiryDetail(inquiryId: string) {
   return [
     `ID: ${inquiry.id}`,
     `Status: ${inquiry.status}`,
-    `Layanan: ${inquiry.service.title}`,
+    `Produk/layanan: ${inquiry.service.title}`,
     `Provider: ${inquiry.provider.owner ? getUserLabel(inquiry.provider.owner) : inquiry.provider.name}`,
     `Customer: ${getUserLabel(inquiry.customerUser)}`,
     `Notif provider: ${inquiry.providerNotificationStatus ?? "-"}`,
@@ -587,7 +587,7 @@ export async function POST(request: Request) {
     const miniAppUrl = getMiniAppUrl("home");
     await sendTelegramMessage({
       chatId: String(chatId),
-      text: "Selamat datang di Tikep. Akun Telegram kamu sudah terhubung, sekarang kamu bisa buka Mini App untuk membuat layanan, pesan provider, memberi review, dan menerima gift.",
+      text: "Selamat datang di Tikep. Akun Telegram kamu sudah terhubung, sekarang kamu bisa buka Mini App untuk membuat produk/layanan, pesan provider, memberi review, dan menerima gift.",
       replyMarkup: miniAppUrl
         ? {
             inline_keyboard: [[{ text: "Buka Mini App", url: miniAppUrl }]],
