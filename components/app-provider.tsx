@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { getTelegramInitData } from "@/lib/telegram-webapp";
-import type { NewServiceInput, Service } from "@/lib/types";
+import type { NewServiceInput, Service, UpdateServiceInput } from "@/lib/types";
 
 type AppContextValue = {
   currentUser: CurrentUser;
@@ -17,6 +17,8 @@ type AppContextValue = {
   toggleRecommendation: (serviceId: string) => void;
   reportService: (serviceId: string) => void;
   addService: (input: NewServiceInput) => Promise<Service>;
+  updateService: (serviceId: string, input: UpdateServiceInput) => Promise<Service>;
+  deleteService: (serviceId: string) => Promise<void>;
   addCategory: (name: string) => Promise<string>;
 };
 
@@ -202,6 +204,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             : [...current.categories, data.service.category],
         }));
         return data.service;
+      },
+      async updateService(serviceId, input) {
+        const response = await fetch(`/api/services/${serviceId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ ...input, initData: getTelegramInitData() }),
+        });
+
+        if (!response.ok) {
+          const data = (await response.json().catch(() => ({}))) as { error?: string };
+          throw new Error(data.error ?? "Gagal memperbarui produk/layanan.");
+        }
+
+        const data = (await response.json()) as { service: Service };
+        setState((current) => ({
+          ...current,
+          services: current.services.map((service) => (service.id === serviceId ? data.service : service)),
+          categories: current.categories.includes(data.service.category)
+            ? current.categories
+            : [...current.categories, data.service.category],
+        }));
+        return data.service;
+      },
+      async deleteService(serviceId) {
+        const response = await fetch(`/api/services/${serviceId}`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ initData: getTelegramInitData() }),
+        });
+
+        if (!response.ok) {
+          const data = (await response.json().catch(() => ({}))) as { error?: string };
+          throw new Error(data.error ?? "Gagal menghapus produk/layanan.");
+        }
+
+        setState((current) => ({
+          ...current,
+          services: current.services.filter((service) => service.id !== serviceId),
+          recommendedIds: current.recommendedIds.filter((id) => id !== serviceId),
+          reportedIds: current.reportedIds.filter((id) => id !== serviceId),
+        }));
       },
       async addCategory(name) {
         const response = await fetch("/api/categories", {

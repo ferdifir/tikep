@@ -159,14 +159,17 @@ export default function PostPage() {
       { value: createCategoryValue, label: "Buat kategori", description: "Tambah kategori baru" },
     ];
   }, [categories]);
-
-  const canSubmit =
-    title.trim().length >= 4 &&
-    Boolean(coverFile) &&
-    providerName.length >= 2 &&
-    category.trim().length >= 2 &&
-    Number(price) > 0 &&
-    description.trim().length >= 12;
+  const submitIssues = [
+    !coverFile ? "Pilih cover foto produk/layanan." : "",
+    title.trim().length < 4 ? "Judul minimal 4 karakter." : "",
+    providerName.length < 2 ? "Nama penyedia minimal 2 karakter." : "",
+    category.trim().length < 2 ? "Pilih atau buat kategori." : "",
+    !Number.isFinite(Number(price)) || Number(price) <= 0 ? "Isi harga lebih dari 0." : "",
+    description.trim().length < 12 ? "Deskripsi minimal 12 karakter." : "",
+    !isBotConnected ? "Hubungkan bot Tikep agar notifikasi pesanan bisa dikirim." : "",
+    !hasTelegramUsername ? "Atur username Telegram agar customer bisa menghubungi provider." : "",
+  ].filter(Boolean);
+  const canSubmit = submitIssues.length === 0;
 
   return (
     <div className="p-4">
@@ -325,6 +328,20 @@ export default function PostPage() {
             className="w-full resize-none rounded-lg border border-gray-200 px-3 py-3 text-sm leading-6 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
           />
         </label>
+
+        {!canSubmit ? (
+          <section className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+            <p className="text-xs font-bold text-amber-800">Lengkapi dulu sebelum terbit:</p>
+            <ul className="mt-2 space-y-1 text-xs font-semibold leading-5 text-amber-700">
+              {submitIssues.map((issue) => (
+                <li key={issue} className="flex gap-2">
+                  <span aria-hidden="true">-</span>
+                  <span>{issue}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         <div className="grid grid-cols-[1fr_auto] gap-3">
           <button

@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, Inbox, Send, ShieldCheck, Wallet } from "lucide-react";
+import { CircleHelp, Heart, Inbox, Send, ShieldCheck, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
@@ -88,6 +88,18 @@ export default function ProfilePage() {
           <div className="flex items-center gap-2">
             <Wallet className="h-4 w-4 text-indigo-600" />
             <h2 className="text-sm font-bold text-gray-900">Wallet gift</h2>
+            <span className="group relative inline-flex">
+              <button
+                type="button"
+                className="flex h-5 w-5 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-indigo-600 focus:bg-gray-100 focus:text-indigo-600 focus:outline-none"
+                aria-label="Cara mendapatkan saldo gift"
+              >
+                <CircleHelp className="h-3.5 w-3.5" />
+              </button>
+              <span className="pointer-events-none absolute left-1/2 top-7 z-20 w-64 -translate-x-1/2 rounded-lg border border-gray-200 bg-white p-3 text-left text-xs font-semibold leading-5 text-gray-600 opacity-0 shadow-lg transition group-focus-within:opacity-100 group-hover:opacity-100">
+                Saldo gift masuk saat orang mengirim gift/QRIS dari konten foto/video non-anonim atau layanan yang terhubung ke akun Anda.
+              </span>
+            </span>
           </div>
           <Link href="/wallet" className="text-xs font-bold text-indigo-600">
             Detail

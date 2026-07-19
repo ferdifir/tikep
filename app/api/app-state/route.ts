@@ -19,6 +19,7 @@ export async function GET(request: Request) {
 
   const [services, categories, recommendations, reports] = await Promise.all([
     prisma.service.findMany({
+      where: { deletedAt: null },
       orderBy: { createdAt: "desc" },
       include: serviceInclude,
     }),

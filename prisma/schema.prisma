@@ -91,6 +91,7 @@ model Service {
   reports         Report[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
 }
 
 model Media {

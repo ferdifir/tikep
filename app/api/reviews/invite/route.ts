@@ -150,8 +150,8 @@ export async function POST(request: Request) {
     return createdReview;
   });
 
-  const service = await prisma.service.findUnique({
-    where: { id: invite.serviceId },
+  const service = await prisma.service.findFirst({
+    where: { id: invite.serviceId, deletedAt: null },
     include: serviceInclude,
   });
 

@@ -18,6 +18,7 @@ function makeAvatar(provider: string) {
 
 export async function GET() {
   const services = await prisma.service.findMany({
+    where: { deletedAt: null },
     orderBy: { createdAt: "desc" },
     include: serviceInclude,
   });

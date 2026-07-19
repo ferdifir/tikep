@@ -8,6 +8,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ slu
     where: { slug },
     include: {
       services: {
+        where: { deletedAt: null },
         orderBy: { createdAt: "desc" },
         include: serviceInclude,
       },

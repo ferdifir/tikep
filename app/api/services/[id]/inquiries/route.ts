@@ -40,8 +40,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     );
   }
 
-  const service = await prisma.service.findUnique({
-    where: { id },
+  const service = await prisma.service.findFirst({
+    where: { id, deletedAt: null },
     include: {
       provider: {
         include: {

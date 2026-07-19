@@ -31,8 +31,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     return providerUser;
   }
 
-  const service = await prisma.service.findUnique({
-    where: { id },
+  const service = await prisma.service.findFirst({
+    where: { id, deletedAt: null },
     include: { provider: true },
   });
 
@@ -110,8 +110,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return providerUser;
   }
 
-  const service = await prisma.service.findUnique({
-    where: { id },
+  const service = await prisma.service.findFirst({
+    where: { id, deletedAt: null },
     include: {
       provider: true,
     },

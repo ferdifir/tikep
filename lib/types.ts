@@ -40,4 +40,11 @@ export type NewServiceInput = {
   coverFile: File;
 };
 
+export type UpdateServiceInput = {
+  title: string;
+  category: ServiceCategory;
+  price: number;
+  description: string;
+};
+
 export type IconMap = Record<string, LucideIcon>;
