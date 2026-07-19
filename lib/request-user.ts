@@ -51,6 +51,36 @@ export async function getUserFromInitDataOrDemo(initData?: string) {
     return user;
   }
 
+  if (!isProduction) {
+    const session = await prisma.telegramSession.findFirst({
+      where: {
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (session) {
+      logTelegramAuthDebug({
+        event: "dev_session_fallback",
+        telegramId: session.user.telegramId,
+        username: session.user.username,
+        authDate: session.authDate,
+        expiresAt: session.expiresAt,
+        hasTelegramChatId: Boolean(session.user.telegramChatId),
+        hasBotStartedAt: Boolean(session.user.botStartedAt),
+      });
+
+      return session.user;
+    }
+  }
+
   if (isProduction) {
     if (!botToken) {
       throw new AuthenticationError("TELEGRAM_BOT_TOKEN wajib dikonfigurasi di production.");
