@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Copy, Edit3, Flag, Heart, Layers, LinkIcon, MessageCircle, PenLine, Share2, ThumbsDown, ThumbsUp, Trash2, TrendingUp, Workflow } from "lucide-react";
+import { ArrowLeft, Copy, Edit3, Flag, Heart, Layers, LinkIcon, MessageCircle, PenLine, Send, Share2, ThumbsDown, ThumbsUp, Trash2, TrendingUp, Workflow, X } from "lucide-react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { useParams, useRouter } from "next/navigation";
@@ -39,7 +39,7 @@ type ReviewInviteInquiry = {
 export default function ServicePreviewPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { services, recommendedIds, reportedIds, toggleRecommendation, reportService, deleteService } = useTikep();
+  const { services, recommendedIds, reportedIds, toggleRecommendation, reportService, deleteService, transferService } = useTikep();
   const service = services.find((item) => item.id === params.id);
   const [inviteLink, setInviteLink] = useState("");
   const [inviteStatus, setInviteStatus] = useState("");
@@ -49,6 +49,13 @@ export default function ServicePreviewPage() {
   const [shareStatus, setShareStatus] = useState("");
   const [editStatus, setEditStatus] = useState("");
   const [editError, setEditError] = useState("");
+  const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [transferSearch, setTransferSearch] = useState("");
+  const [transferResults, setTransferResults] = useState<{ id: string; username: string | null; firstName: string | null; lastName: string | null }[]>([]);
+  const [transferTarget, setTransferTarget] = useState<{ id: string; username: string | null; firstName: string | null; lastName: string | null } | null>(null);
+  const [transferBusy, setTransferBusy] = useState(false);
+  const [transferStatus, setTransferStatus] = useState("");
+  const [transferError, setTransferError] = useState("");
 
   useEffect(() => {
     if (!service || service.owner !== "me") {
@@ -161,6 +168,40 @@ export default function ServicePreviewPage() {
       window.setTimeout(() => setShareStatus(""), 1800);
     } catch {
       setShareStatus("");
+    }
+  }
+
+  async function handleTransferSearch() {
+    const q = transferSearch.replace(/^@/, "").trim();
+    if (q.length < 2) return;
+
+    setTransferError("");
+    try {
+      const response = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`);
+      if (!response.ok) throw new Error();
+      const data = (await response.json()) as { users: { id: string; username: string | null; firstName: string | null; lastName: string | null }[] };
+      setTransferResults(data.users);
+      setTransferTarget(null);
+    } catch {
+      setTransferError("Pencarian user gagal.");
+    }
+  }
+
+  async function handleTransferSubmit() {
+    if (!service || !transferTarget) return;
+
+    setTransferBusy(true);
+    setTransferError("");
+    setTransferStatus("");
+
+    try {
+      await transferService(service.id, transferTarget.id);
+      setTransferStatus("Kepemilikan produk/layanan berhasil ditransfer.");
+      window.setTimeout(() => router.replace("/profile"), 1500);
+    } catch (transferSubmitError) {
+      setTransferError(transferSubmitError instanceof Error ? transferSubmitError.message : "Transfer gagal.");
+    } finally {
+      setTransferBusy(false);
     }
   }
 
@@ -307,6 +348,14 @@ export default function ServicePreviewPage() {
                   <Edit3 className="h-4 w-4" />
                   Edit detail
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setTransferModalOpen(true)}
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-white px-3 text-xs font-bold text-amber-700 transition hover:bg-amber-50"
+                >
+                  <Send className="h-4 w-4" />
+                  Transfer kepemilikan
+                </button>
                 {editStatus ? <p className="text-xs font-semibold text-emerald-700">{editStatus}</p> : null}
                 {editError ? <p className="text-xs font-semibold text-rose-600">{editError}</p> : null}
               </section>
@@ -418,6 +467,107 @@ export default function ServicePreviewPage() {
           </section>
         </div>
       </article>
+
+      {transferModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
+          <section className="w-full rounded-lg bg-white p-4 shadow-xl sm:max-w-sm">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-bold text-gray-900">Transfer kepemilikan</h2>
+              <button
+                type="button"
+                onClick={() => { setTransferModalOpen(false); setTransferResults([]); setTransferTarget(null); setTransferError(""); setTransferStatus(""); }}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-50"
+                aria-label="Tutup"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <p className="mb-3 text-xs leading-5 text-gray-600">
+              Transfer akan memindahkan seluruh produk/layanan di bawah penyedia ini ke user lain. Tidak bisa dibatalkan.
+            </p>
+
+            <label className="block space-y-1.5">
+              <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Cari user</span>
+              <div className="flex gap-2">
+                <input
+                  value={transferSearch}
+                  onChange={(event) => setTransferSearch(event.target.value)}
+                  onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); handleTransferSearch(); } }}
+                  placeholder="@username"
+                  className="h-10 flex-1 rounded-lg border border-gray-200 px-3 text-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                />
+                <button
+                  type="button"
+                  onClick={handleTransferSearch}
+                  disabled={transferSearch.replace(/^@/, "").trim().length < 2}
+                  className="flex h-10 items-center justify-center rounded-lg bg-amber-600 px-4 text-sm font-bold text-white transition hover:bg-amber-700 disabled:bg-gray-300"
+                >
+                  Cari
+                </button>
+              </div>
+            </label>
+
+            {transferResults.length > 0 ? (
+              <div className="mt-3 space-y-1">
+                {transferResults.map((user) => {
+                  const selected = transferTarget?.id === user.id;
+                  const label = user.username ? `@${user.username}` : [user.firstName, user.lastName].filter(Boolean).join(" ") || "User";
+                  return (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={() => setTransferTarget(user)}
+                      className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition ${
+                        selected ? "bg-amber-50 text-amber-900 ring-1 ring-amber-300" : "hover:bg-gray-50 text-gray-700"
+                      }`}
+                    >
+                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                        selected ? "bg-amber-200 text-amber-800" : "bg-gray-100 text-gray-600"
+                      }`}>
+                        {label.slice(0, 2).toUpperCase()}
+                      </span>
+                      <div>
+                        <p className="font-semibold">{label}</p>
+                        {user.firstName ? <p className="text-xs text-gray-500">{user.firstName} {user.lastName}</p> : null}
+                      </div>
+                      {selected ? <span className="ml-auto text-amber-600 text-xs font-bold">Dipilih</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : transferSearch.replace(/^@/, "").trim().length >= 2 ? (
+              <p className="mt-3 text-xs font-semibold text-gray-500">Tidak ada user ditemukan.</p>
+            ) : null}
+
+            {transferError ? (
+              <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700">{transferError}</div>
+            ) : null}
+
+            {transferStatus ? (
+              <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-700">{transferStatus}</div>
+            ) : null}
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => { setTransferModalOpen(false); setTransferResults([]); setTransferTarget(null); setTransferError(""); setTransferStatus(""); }}
+                className="h-11 rounded-lg border border-gray-200 px-4 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleTransferSubmit}
+                disabled={!transferTarget || transferBusy}
+                className="flex h-11 items-center justify-center gap-2 rounded-lg bg-amber-600 px-4 text-sm font-bold text-white transition hover:bg-amber-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+              >
+                {transferBusy ? "Transfer..." : "Transfer"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model User {
@@ -38,8 +38,10 @@ model User {
 
 model Provider {
   id          String           @id @default(cuid())
-  ownerUserId String?
-  owner       User?            @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+  ownerUserId           String?
+  owner                 User?            @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+  previousOwnerUserId   String?
+  ownerTransferredAt    DateTime?
   slug        String           @unique
   name        String
   bio         String

@@ -20,6 +20,7 @@ type AppContextValue = {
   updateService: (serviceId: string, input: UpdateServiceInput) => Promise<Service>;
   deleteService: (serviceId: string) => Promise<void>;
   addCategory: (name: string) => Promise<string>;
+  transferService: (serviceId: string, targetUserId: string) => Promise<void>;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -259,6 +260,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           recommendedIds: current.recommendedIds.filter((id) => id !== serviceId),
           reportedIds: current.reportedIds.filter((id) => id !== serviceId),
         }));
+      },
+      async transferService(serviceId, targetUserId) {
+        const response = await fetch(`/api/services/${serviceId}/transfer`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ initData: getTelegramInitData(), targetUserId }),
+        });
+
+        if (!response.ok) {
+          const data = (await response.json().catch(() => ({}))) as { error?: string };
+          throw new Error(data.error ?? "Transfer gagal.");
+        }
+
+        await refreshAppState();
       },
       async addCategory(name) {
         const response = await fetch("/api/categories", {
