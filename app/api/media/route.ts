@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { authErrorResponse } from "@/lib/api-errors";
 import { getUserFromInitDataOrDemo } from "@/lib/request-user";
 import { prisma } from "@/lib/prisma";
+import { normalizeUploadUrl } from "@/lib/media-url";
 import { allowedImageTypes, getUploadMeta, saveUploadFile } from "@/lib/upload-files";
 
 export const runtime = "nodejs";
@@ -9,11 +10,15 @@ export const runtime = "nodejs";
 function toMediaResponse<
   T extends {
     isAnonymous: boolean;
+    url: string;
+    thumbnailUrl: string | null;
     authorUser: { username: string | null; firstName: string | null; lastName: string | null } | null;
   },
 >(media: T) {
   return {
     ...media,
+    url: normalizeUploadUrl(media.url) ?? media.url,
+    thumbnailUrl: normalizeUploadUrl(media.thumbnailUrl),
     authorUser: media.isAnonymous ? null : media.authorUser,
   };
 }

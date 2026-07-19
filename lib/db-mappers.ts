@@ -1,4 +1,5 @@
 import "server-only";
+import { normalizeUploadUrl } from "@/lib/media-url";
 import type { Service } from "@/lib/types";
 
 type DbService = {
@@ -49,7 +50,7 @@ export function mapService(service: DbService, currentUserId?: string): Service 
     description: service.description,
     iconName: service.iconName,
     previewLabel: service.previewLabel,
-    coverUrl: service.media[0]?.thumbnailUrl ?? service.media[0]?.url ?? null,
+    coverUrl: normalizeUploadUrl(service.media[0]?.thumbnailUrl ?? service.media[0]?.url),
     owner: currentUserId && service.provider.ownerUserId === currentUserId ? "me" : "other",
     createdAt: service.createdAt.toISOString().slice(0, 10),
     reviews: service.reviews.map((review) => ({

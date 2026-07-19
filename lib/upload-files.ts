@@ -47,7 +47,7 @@ export async function saveUploadFile(file: File, options?: { allowedTypes?: type
   const uploadDir = path.join(process.cwd(), "public", "uploads", options?.directory ?? "media");
   const filename = `${Date.now()}-${randomUUID()}.${uploadMeta.fileMeta.extension}`;
   const diskPath = path.join(uploadDir, filename);
-  const publicUrl = `/uploads/${options?.directory ?? "media"}/${filename}`;
+  const publicUrl = `/api/uploads/${options?.directory ?? "media"}/${filename}`;
 
   await mkdir(uploadDir, { recursive: true });
   await writeFile(diskPath, Buffer.from(await file.arrayBuffer()));

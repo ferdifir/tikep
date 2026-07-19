@@ -1,14 +1,19 @@
 import { NextResponse } from "next/server";
+import { normalizeUploadUrl } from "@/lib/media-url";
 import { prisma } from "@/lib/prisma";
 
 function toMediaResponse<
   T extends {
     isAnonymous: boolean;
+    url: string;
+    thumbnailUrl: string | null;
     authorUser: { username: string | null; firstName: string | null; lastName: string | null } | null;
   },
 >(media: T) {
   return {
     ...media,
+    url: normalizeUploadUrl(media.url) ?? media.url,
+    thumbnailUrl: normalizeUploadUrl(media.thumbnailUrl),
     authorUser: media.isAnonymous ? null : media.authorUser,
   };
 }

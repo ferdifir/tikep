@@ -4,6 +4,7 @@ import { Star } from "lucide-react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { formatCurrency } from "@/lib/format";
+import { shouldBypassImageOptimization } from "@/lib/media-url";
 import { getRatingBorderStyle, hasRating } from "@/lib/service-utils";
 import type { Service } from "@/lib/types";
 
@@ -26,6 +27,7 @@ export function ProfileServiceGrid({ services }: { services: Service[] }) {
                   src={service.coverUrl}
                   alt={`Preview ${service.title}`}
                   fill
+                  unoptimized={shouldBypassImageOptimization(service.coverUrl)}
                   sizes="(max-width: 640px) 50vw, 220px"
                   className="object-cover"
                 />

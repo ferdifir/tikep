@@ -6,6 +6,7 @@ import NextImage from "next/image";
 import { useState } from "react";
 import { ServiceInquiryButton } from "@/components/service-inquiry-button";
 import { formatCurrency } from "@/lib/format";
+import { shouldBypassImageOptimization } from "@/lib/media-url";
 import { shareService } from "@/lib/share-links";
 import { getLatestReviews, getProviderSlug, getRatingBorderStyle, getRatingTone, hasRating } from "@/lib/service-utils";
 import type { IconMap, Service } from "@/lib/types";
@@ -69,6 +70,7 @@ export function ServiceCard({ service }: { service: Service }) {
             src={service.coverUrl}
             alt={`Preview ${service.title}`}
             fill
+            unoptimized={shouldBypassImageOptimization(service.coverUrl)}
             sizes="(max-width: 640px) 100vw, 448px"
             className="object-cover"
           />

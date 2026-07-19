@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/empty-state";
 import { useTikep } from "@/components/app-provider";
 import { ServiceInquiryButton } from "@/components/service-inquiry-button";
 import { formatCurrency } from "@/lib/format";
+import { shouldBypassImageOptimization } from "@/lib/media-url";
 import { shareService } from "@/lib/share-links";
 import { getLatestReviews, getProviderSlug, getRatingCircleStyle, hasRating } from "@/lib/service-utils";
 import { getTelegramInitData } from "@/lib/telegram-webapp";
@@ -224,6 +225,7 @@ export default function ServicePreviewPage() {
               alt={`Preview ${service.title}`}
               fill
               priority
+              unoptimized={shouldBypassImageOptimization(service.coverUrl)}
               sizes="(max-width: 640px) 100vw, 448px"
               className="object-cover"
             />

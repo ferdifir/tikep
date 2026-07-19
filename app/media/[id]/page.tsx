@@ -5,6 +5,7 @@ import NextImage from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { EmptyState } from "@/components/empty-state";
+import { shouldBypassImageOptimization } from "@/lib/media-url";
 import { shareMedia } from "@/lib/share-links";
 import { getTelegramInitData } from "@/lib/telegram-webapp";
 
@@ -313,6 +314,7 @@ export default function MediaPreviewPage() {
               alt={media.altText}
               fill
               priority
+              unoptimized={shouldBypassImageOptimization(media.thumbnailUrl ?? media.url)}
               sizes="(max-width: 640px) 100vw, 448px"
               className="object-contain"
             />

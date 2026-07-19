@@ -4,6 +4,7 @@ import { ImageIcon, Play } from "lucide-react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { useEffect, useState } from "react";
+import { shouldBypassImageOptimization } from "@/lib/media-url";
 
 type ExploreMedia = {
   id: string;
@@ -66,6 +67,7 @@ export default function ExplorePage() {
                     src={media.thumbnailUrl ?? media.url}
                     alt={media.altText}
                     fill
+                    unoptimized={shouldBypassImageOptimization(media.thumbnailUrl ?? media.url)}
                     sizes="(max-width: 640px) 50vw, 220px"
                     className="object-cover"
                   />
