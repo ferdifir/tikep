@@ -345,7 +345,7 @@ export default function PostPage() {
       </form>
 
       {categoryModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end bg-black/30 p-4 sm:items-center sm:justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
           <section className="w-full rounded-lg bg-white p-4 shadow-xl sm:max-w-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-bold text-gray-900">Buat kategori</h2>

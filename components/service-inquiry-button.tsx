@@ -72,8 +72,8 @@ export function ServiceInquiryButton({ service, compact = false }: { service: Se
       {error ? <p className="mt-2 text-xs font-semibold text-rose-600">{error}</p> : null}
 
       {showConnectDialog ? (
-        <div className="fixed inset-0 z-[80] flex items-end bg-black/40 px-3 pb-3">
-          <section className="w-full rounded-xl bg-white p-4 shadow-2xl">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4">
+          <section className="w-full max-w-sm rounded-xl bg-white p-4 shadow-2xl">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
                 <h2 className="text-sm font-bold text-gray-900">Hubungkan bot</h2>
