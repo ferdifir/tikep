@@ -45,6 +45,7 @@ export type UpdateServiceInput = {
   category: ServiceCategory;
   price: number;
   description: string;
+  coverFile?: File;
 };
 
 export type IconMap = Record<string, LucideIcon>;

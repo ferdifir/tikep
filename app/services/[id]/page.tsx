@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Copy, Edit3, Flag, Heart, Layers, LinkIcon, MessageCircle, PenLine, Save, Share2, ThumbsDown, ThumbsUp, Trash2, TrendingUp, Workflow } from "lucide-react";
+import { ArrowLeft, Copy, Edit3, Flag, Heart, Layers, LinkIcon, MessageCircle, PenLine, Share2, ThumbsDown, ThumbsUp, Trash2, TrendingUp, Workflow } from "lucide-react";
 import Link from "next/link";
 import NextImage from "next/image";
 import { useParams, useRouter } from "next/navigation";
@@ -38,7 +38,7 @@ type ReviewInviteInquiry = {
 export default function ServicePreviewPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { services, categories, recommendedIds, reportedIds, toggleRecommendation, reportService, updateService, deleteService } = useTikep();
+  const { services, recommendedIds, reportedIds, toggleRecommendation, reportService, deleteService } = useTikep();
   const service = services.find((item) => item.id === params.id);
   const [inviteLink, setInviteLink] = useState("");
   const [inviteStatus, setInviteStatus] = useState("");
@@ -46,11 +46,6 @@ export default function ServicePreviewPage() {
   const [reviewInquiries, setReviewInquiries] = useState<ReviewInviteInquiry[]>([]);
   const [selectedInquiryId, setSelectedInquiryId] = useState("");
   const [shareStatus, setShareStatus] = useState("");
-  const [editing, setEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState("");
-  const [editCategory, setEditCategory] = useState("");
-  const [editPrice, setEditPrice] = useState("");
-  const [editDescription, setEditDescription] = useState("");
   const [editStatus, setEditStatus] = useState("");
   const [editError, setEditError] = useState("");
 
@@ -94,48 +89,6 @@ export default function ServicePreviewPage() {
   const reported = reportedIds.includes(service.id);
   const reviews = getLatestReviews(service.reviews);
   const showRating = hasRating(service.rating);
-  const editCategoryOptions = categories.map((item) => ({ value: item, label: item }));
-  const canSaveEdit =
-    editTitle.trim().length >= 4 &&
-    editCategory.trim().length >= 2 &&
-    Number.isFinite(Number(editPrice)) &&
-    Number(editPrice) > 0 &&
-    editDescription.trim().length >= 12;
-
-  function startEditing() {
-    if (!service) {
-      return;
-    }
-
-    setEditing(true);
-    setEditStatus("");
-    setEditError("");
-    setEditTitle(service.title);
-    setEditCategory(service.category);
-    setEditPrice(String(service.price));
-    setEditDescription(service.description);
-  }
-
-  async function handleUpdateService() {
-    if (!service || !canSaveEdit) {
-      return;
-    }
-
-    try {
-      setEditStatus("");
-      setEditError("");
-      await updateService(service.id, {
-        title: editTitle,
-        category: editCategory,
-        price: Number(editPrice),
-        description: editDescription,
-      });
-      setEditing(false);
-      setEditStatus("Produk/layanan diperbarui.");
-    } catch (updateError) {
-      setEditError(updateError instanceof Error ? updateError.message : "Produk/layanan gagal diperbarui.");
-    }
-  }
 
   async function handleDeleteService() {
     if (!service || !window.confirm("Hapus produk/layanan ini dari feed dan profil?")) {
@@ -344,76 +297,14 @@ export default function ServicePreviewPage() {
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
-                {editing ? (
-                  <div className="space-y-3">
-                    <label className="block space-y-1.5">
-                      <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Judul</span>
-                      <input
-                        value={editTitle}
-                        onChange={(event) => setEditTitle(event.target.value)}
-                        className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                      />
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className="block space-y-1.5">
-                        <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Kategori</span>
-                        <CustomSelect
-                          value={editCategory}
-                          onChange={setEditCategory}
-                          options={editCategoryOptions}
-                          buttonClassName="h-10 bg-white text-xs"
-                        />
-                      </label>
-                      <label className="block space-y-1.5">
-                        <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Harga</span>
-                        <input
-                          value={editPrice}
-                          onChange={(event) => setEditPrice(event.target.value)}
-                          inputMode="numeric"
-                          type="number"
-                          min="1"
-                          className="h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                        />
-                      </label>
-                    </div>
-                    <label className="block space-y-1.5">
-                      <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Deskripsi</span>
-                      <textarea
-                        value={editDescription}
-                        onChange={(event) => setEditDescription(event.target.value)}
-                        rows={4}
-                        className="w-full resize-none rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm leading-6 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-                      />
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setEditing(false)}
-                        className="h-10 rounded-lg border border-gray-200 bg-white px-3 text-xs font-bold text-gray-700 transition hover:bg-gray-50"
-                      >
-                        Batal
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleUpdateService}
-                        disabled={!canSaveEdit}
-                        className="flex h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-3 text-xs font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-                      >
-                        <Save className="h-4 w-4" />
-                        Simpan
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={startEditing}
-                    className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-white px-3 text-xs font-bold text-indigo-700 transition hover:bg-indigo-50"
-                  >
-                    <Edit3 className="h-4 w-4" />
-                    Edit detail
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => router.push(`/post?edit=${encodeURIComponent(service.id)}`)}
+                  className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-white px-3 text-xs font-bold text-indigo-700 transition hover:bg-indigo-50"
+                >
+                  <Edit3 className="h-4 w-4" />
+                  Edit detail
+                </button>
                 {editStatus ? <p className="text-xs font-semibold text-emerald-700">{editStatus}</p> : null}
                 {editError ? <p className="text-xs font-semibold text-rose-600">{editError}</p> : null}
               </section>

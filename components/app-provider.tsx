@@ -206,12 +206,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return data.service;
       },
       async updateService(serviceId, input) {
+        const formData = new FormData();
+        formData.append("title", input.title);
+        formData.append("category", input.category);
+        formData.append("price", String(input.price));
+        formData.append("description", input.description);
+        formData.append("initData", getTelegramInitData());
+
+        if (input.coverFile) {
+          formData.append("coverFile", input.coverFile);
+        }
+
         const response = await fetch(`/api/services/${serviceId}`, {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ ...input, initData: getTelegramInitData() }),
+          body: formData,
         });
 
         if (!response.ok) {

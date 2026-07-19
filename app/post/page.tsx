@@ -1,18 +1,34 @@
 "use client";
 
 import { CheckCircle2, MessageCircle, PlusCircle, RefreshCw, X } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ChangeEvent, FormEvent, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useTikep } from "@/components/app-provider";
 import { CustomSelect, type CustomSelectOption } from "@/components/custom-select";
+import { EmptyState } from "@/components/empty-state";
 import { getBotStartUrl } from "@/lib/telegram-webapp";
 import type { ServiceCategory } from "@/lib/types";
 
 const createCategoryValue = "__create_category__";
 
 export default function PostPage() {
+  return (
+    <Suspense fallback={<div className="p-4 text-sm font-semibold text-gray-500">Memuat form...</div>}>
+      <PostContent />
+    </Suspense>
+  );
+}
+
+function PostContent() {
   const router = useRouter();
-  const { addCategory, addService, categories, currentUser, refreshAppState } = useTikep();
+  const searchParams = useSearchParams();
+  const { addCategory, addService, categories, currentUser, isAppStateLoading, refreshAppState, services, updateService } = useTikep();
+  const editServiceId = searchParams.get("edit")?.trim() ?? "";
+  const editingService = useMemo(
+    () => services.find((service) => service.id === editServiceId && service.owner === "me"),
+    [editServiceId, services],
+  );
+  const isEditMode = Boolean(editServiceId);
   const telegramProviderName = useMemo(() => {
     const fullName = [currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ").trim();
     return fullName || (currentUser.username ? `@${currentUser.username}` : "");
@@ -30,6 +46,7 @@ export default function PostPage() {
   const [error, setError] = useState("");
   const [botLink, setBotLink] = useState("");
   const coverPreviewUrlRef = useRef("");
+  const initialEditServiceIdRef = useRef("");
 
   useEffect(() => {
     queueMicrotask(() => setBotLink(getBotStartUrl("bind_provider")));
@@ -56,6 +73,28 @@ export default function PostPage() {
       document.removeEventListener("visibilitychange", refreshWhenActive);
     };
   }, [refreshAppState]);
+
+  useEffect(() => {
+    if (!isEditMode || !editingService || initialEditServiceIdRef.current === editingService.id) {
+      return;
+    }
+
+    if (coverPreviewUrlRef.current) {
+      URL.revokeObjectURL(coverPreviewUrlRef.current);
+      coverPreviewUrlRef.current = "";
+    }
+
+    initialEditServiceIdRef.current = editingService.id;
+    setTitle(editingService.title);
+    setProvider(editingService.provider);
+    setCategory(editingService.category);
+    setPrice(String(editingService.price));
+    setDescription(editingService.description);
+    setCoverFile(null);
+    setCoverPreviewUrl(editingService.coverUrl ?? "");
+    setSubmitted(false);
+    setError("");
+  }, [editingService, isEditMode]);
 
   function replaceCoverFile(nextFile: File | null) {
     if (coverPreviewUrlRef.current) {
@@ -102,12 +141,28 @@ export default function PostPage() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!canSubmit || !coverFile) {
+    if (!canSubmit) {
       return;
     }
 
     try {
       setError("");
+      if (isEditMode && editingService) {
+        const updatedService = await updateService(editingService.id, {
+          title,
+          category,
+          price: Number(price),
+          description,
+          coverFile: coverFile ?? undefined,
+        });
+        router.replace(`/services/${updatedService.id}`);
+        return;
+      }
+
+      if (!coverFile) {
+        return;
+      }
+
       await addService({
         title,
         provider: providerName,
@@ -126,7 +181,7 @@ export default function PostPage() {
       setDescription("");
       replaceCoverFile(null);
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Produk/layanan gagal ditambahkan.");
+      setError(submitError instanceof Error ? submitError.message : "Produk/layanan gagal disimpan.");
     }
   }
 
@@ -150,9 +205,9 @@ export default function PostPage() {
 
   const isBotConnected = Boolean(currentUser.telegramChatId && currentUser.botStartedAt);
   const hasTelegramUsername = Boolean(currentUser.username);
-  const shouldShowBotNotice = !isBotConnected || !hasTelegramUsername;
-  const providerName = telegramProviderName || provider.trim();
-  const providerReadOnly = Boolean(telegramProviderName);
+  const shouldShowBotNotice = !isEditMode && (!isBotConnected || !hasTelegramUsername);
+  const providerName = isEditMode && editingService ? editingService.provider : telegramProviderName || provider.trim();
+  const providerReadOnly = isEditMode || Boolean(telegramProviderName);
   const categoryOptions = useMemo<CustomSelectOption<string>[]>(() => {
     return [
       ...categories.map((item) => ({ value: item, label: item })),
@@ -160,16 +215,26 @@ export default function PostPage() {
     ];
   }, [categories]);
   const submitIssues = [
-    !coverFile ? "Pilih cover foto produk/layanan." : "",
+    isEditMode && !isAppStateLoading && !editingService ? "Produk/layanan tidak ditemukan atau bukan milik kamu." : "",
+    !isEditMode && !coverFile ? "Pilih cover foto produk/layanan." : "",
+    isEditMode && !coverFile && !coverPreviewUrl ? "Pilih cover foto produk/layanan." : "",
     title.trim().length < 4 ? "Judul minimal 4 karakter." : "",
     providerName.length < 2 ? "Nama penyedia minimal 2 karakter." : "",
     category.trim().length < 2 ? "Pilih atau buat kategori." : "",
     !Number.isFinite(Number(price)) || Number(price) <= 0 ? "Isi harga lebih dari 0." : "",
     description.trim().length < 12 ? "Deskripsi minimal 12 karakter." : "",
-    !isBotConnected ? "Hubungkan bot Tikep agar notifikasi pesanan bisa dikirim." : "",
-    !hasTelegramUsername ? "Atur username Telegram agar customer bisa menghubungi provider." : "",
+    !isEditMode && !isBotConnected ? "Hubungkan bot Tikep agar notifikasi pesanan bisa dikirim." : "",
+    !isEditMode && !hasTelegramUsername ? "Atur username Telegram agar customer bisa menghubungi provider." : "",
   ].filter(Boolean);
-  const canSubmit = submitIssues.length === 0;
+  const canSubmit = submitIssues.length === 0 && (!isEditMode || Boolean(editingService));
+
+  if (isEditMode && !isAppStateLoading && !editingService) {
+    return (
+      <div className="p-4">
+        <EmptyState title="Produk/layanan tidak ditemukan" body="Produk/layanan ini tidak tersedia atau bukan milik kamu." />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4">
@@ -180,8 +245,12 @@ export default function PostPage() {
               <PlusCircle className="h-5 w-5" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-gray-900">Buat produk/layanan</h1>
-              <p className="text-xs leading-5 text-gray-500">Post baru akan muncul di feed dan profil.</p>
+              <h1 className="text-base font-bold text-gray-900">
+                {isEditMode ? "Edit produk/layanan" : "Buat produk/layanan"}
+              </h1>
+              <p className="text-xs leading-5 text-gray-500">
+                {isEditMode ? "Perubahan akan diterapkan ke halaman detail dan profil." : "Post baru akan muncul di feed dan profil."}
+              </p>
             </div>
           </div>
         </section>
@@ -255,8 +324,12 @@ export default function PostPage() {
               </div>
             </div>
             <label className="flex cursor-pointer flex-col justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 text-sm text-gray-600 transition hover:border-indigo-300 hover:bg-indigo-50/40">
-              <span className="font-bold text-gray-900">{coverFile ? coverFile.name : "Pilih cover foto"}</span>
-              <span className="mt-1 text-xs leading-5 text-gray-500">JPG, PNG, atau WebP. Cover tampil di card dan profil.</span>
+              <span className="font-bold text-gray-900">
+                {coverFile ? coverFile.name : isEditMode && coverPreviewUrl ? "Ganti cover foto" : "Pilih cover foto"}
+              </span>
+              <span className="mt-1 text-xs leading-5 text-gray-500">
+                JPG, PNG, atau WebP. {isEditMode ? "Kosongkan jika cover lama tetap dipakai." : "Cover tampil di card dan profil."}
+              </span>
               <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleCoverChange} className="sr-only" />
             </label>
           </div>
@@ -349,14 +422,14 @@ export default function PostPage() {
             disabled={!canSubmit}
             className="h-11 rounded-lg bg-indigo-600 px-4 text-sm font-bold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-gray-300"
           >
-            Terbitkan
+            {isEditMode ? "Simpan" : "Terbitkan"}
           </button>
           <button
             type="button"
-            onClick={() => router.push("/")}
+            onClick={() => router.push(isEditMode && editingService ? `/services/${editingService.id}` : "/")}
             className="h-11 rounded-lg border border-gray-200 px-4 text-sm font-bold text-gray-700 transition hover:bg-gray-50"
           >
-            Feed
+            {isEditMode ? "Batal" : "Feed"}
           </button>
         </div>
       </form>
