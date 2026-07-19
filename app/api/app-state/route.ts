@@ -43,6 +43,8 @@ export async function GET(request: Request) {
       firstName: user.firstName,
       lastName: user.lastName,
       photoUrl: user.photoUrl,
+      telegramChatId: user.telegramChatId,
+      botStartedAt: user.botStartedAt?.toISOString() ?? null,
     },
     services: services.map((service) => mapService(service, user.id)),
     categories,

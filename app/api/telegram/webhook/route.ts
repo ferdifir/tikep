@@ -36,6 +36,16 @@ type TelegramUpdate = {
 
 const developerChatId = process.env.TELEGRAM_DEVELOPER_CHAT_ID ?? "7764382006";
 
+function getMiniAppUrl(startParam = "home") {
+  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME?.replace(/^@/, "");
+
+  if (!botUsername) {
+    return "";
+  }
+
+  return `https://t.me/${botUsername}?startapp=${encodeURIComponent(startParam)}`;
+}
+
 function normalizeCommand(text: string) {
   return text.trim().replace(/\s+/g, " ");
 }
@@ -569,13 +579,17 @@ export async function POST(request: Request) {
   if (command === "/start") {
     await bindBotUser(update);
 
-    if (!isAuthorizedDeveloper(update)) {
-      await sendTelegramMessage({
-        chatId: String(chatId),
-        text: "Akun Telegram kamu sudah terhubung ke Tikep. Sekarang kamu bisa kembali ke Mini App.",
-      });
-      return NextResponse.json({ ok: true });
-    }
+    const miniAppUrl = getMiniAppUrl("home");
+    await sendTelegramMessage({
+      chatId: String(chatId),
+      text: "Selamat datang di Tikep. Akun Telegram kamu sudah terhubung, sekarang kamu bisa buka Mini App untuk membuat layanan, pesan provider, memberi review, dan menerima gift.",
+      replyMarkup: miniAppUrl
+        ? {
+            inline_keyboard: [[{ text: "Buka Mini App", url: miniAppUrl }]],
+          }
+        : undefined,
+    });
+    return NextResponse.json({ ok: true });
   }
 
   if (!isAuthorizedDeveloper(update)) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, MessageCircle, PlusCircle } from "lucide-react";
+import { CheckCircle2, MessageCircle, PlusCircle, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useTikep } from "@/components/app-provider";
@@ -9,7 +9,7 @@ import type { ServiceCategory } from "@/lib/types";
 
 export default function PostPage() {
   const router = useRouter();
-  const { addCategory, addService, categories, currentUser } = useTikep();
+  const { addCategory, addService, categories, currentUser, refreshAppState } = useTikep();
   const defaultProvider = useMemo(() => {
     return [currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ") || currentUser.username || "Penyedia Tikep";
   }, [currentUser]);
@@ -35,6 +35,22 @@ export default function PostPage() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    const refreshWhenActive = () => {
+      if (document.visibilityState === "visible") {
+        refreshAppState().catch(() => undefined);
+      }
+    };
+
+    window.addEventListener("focus", refreshWhenActive);
+    document.addEventListener("visibilitychange", refreshWhenActive);
+
+    return () => {
+      window.removeEventListener("focus", refreshWhenActive);
+      document.removeEventListener("visibilitychange", refreshWhenActive);
+    };
+  }, [refreshAppState]);
 
   function replaceCoverFile(nextFile: File | null) {
     if (coverPreviewUrlRef.current) {
@@ -124,6 +140,9 @@ export default function PostPage() {
     }
   }
 
+  const isBotConnected = Boolean(currentUser.telegramChatId && currentUser.botStartedAt);
+  const hasTelegramUsername = Boolean(currentUser.username);
+
   const canSubmit =
     title.trim().length >= 4 &&
     Boolean(coverFile) &&
@@ -149,15 +168,41 @@ export default function PostPage() {
         <section className="rounded-lg border border-indigo-100 bg-indigo-50 p-3">
           <div className="flex items-start gap-2">
             <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600" />
-            <div className="space-y-2">
+            <div className="min-w-0 flex-1 space-y-2">
               <p className="text-xs font-semibold leading-5 text-indigo-900">
                 Provider wajib sudah start bot Tikep dan punya username Telegram agar notifikasi pesanan bisa dikirim dan customer bisa menghubungi kamu.
               </p>
-              {botLink ? (
-                <a href={botLink} className="inline-flex text-xs font-bold text-indigo-700">
-                  Hubungkan bot
-                </a>
-              ) : null}
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`inline-flex rounded-full px-2 py-1 text-xs font-bold ${
+                    isBotConnected ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                  }`}
+                >
+                  {isBotConnected ? "Bot terhubung" : "Bot belum terhubung"}
+                </span>
+                <span
+                  className={`inline-flex rounded-full px-2 py-1 text-xs font-bold ${
+                    hasTelegramUsername ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                  }`}
+                >
+                  {hasTelegramUsername ? `@${currentUser.username}` : "Username belum ada"}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {!isBotConnected && botLink ? (
+                  <a href={botLink} className="inline-flex text-xs font-bold text-indigo-700">
+                    Hubungkan bot
+                  </a>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => refreshAppState().catch(() => undefined)}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-indigo-700"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Cek ulang
+                </button>
+              </div>
             </div>
           </div>
         </section>

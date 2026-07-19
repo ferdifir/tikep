@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { seedServices } from "@/lib/seed-data";
 import { getTelegramInitData } from "@/lib/telegram-webapp";
 import type { NewServiceInput, Service } from "@/lib/types";
@@ -12,6 +12,7 @@ type AppContextValue = {
   recommendedIds: string[];
   reportedIds: string[];
   homeFiltersOpen: boolean;
+  refreshAppState: () => Promise<void>;
   toggleHomeFilters: () => void;
   toggleRecommendation: (serviceId: string) => void;
   reportService: (serviceId: string) => void;
@@ -35,6 +36,8 @@ type CurrentUser = {
   firstName: string | null;
   lastName: string | null;
   photoUrl: string | null;
+  telegramChatId: string | null;
+  botStartedAt: string | null;
 };
 
 const defaultState: StoredState = {
@@ -44,6 +47,8 @@ const defaultState: StoredState = {
     firstName: "Tikep",
     lastName: "Studio",
     photoUrl: null,
+    telegramChatId: "demo-tikep-chat",
+    botStartedAt: new Date(0).toISOString(),
   },
   services: seedServices,
   categories: ["Desain", "Marketing", "Teknologi", "Konten"],
@@ -69,17 +74,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<StoredState>(defaultState);
   const [homeFiltersOpen, setHomeFiltersOpen] = useState(false);
 
+  const refreshAppState = useCallback(async () => {
+    const initData = getTelegramInitData();
+    const url = initData ? `/api/app-state?initData=${encodeURIComponent(initData)}` : "/api/app-state";
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error("Failed to load app state");
+    }
+
+    const data = (await response.json()) as AppStateResponse;
+    setState(mapAppState(data));
+  }, []);
+
   useEffect(() => {
     queueMicrotask(() => {
-      const initData = getTelegramInitData();
-      const url = initData ? `/api/app-state?initData=${encodeURIComponent(initData)}` : "/api/app-state";
-
-      fetch(url)
-        .then((response) => (response.ok ? response.json() : Promise.reject(new Error("Failed to load app state"))))
-        .then((data: AppStateResponse) => setState(mapAppState(data)))
-        .catch(() => setState(defaultState));
+      refreshAppState().catch(() => setState(defaultState));
     });
-  }, []);
+  }, [refreshAppState]);
 
   const value = useMemo<AppContextValue>(
     () => ({
@@ -89,6 +101,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       recommendedIds: state.recommendedIds,
       reportedIds: state.reportedIds,
       homeFiltersOpen,
+      refreshAppState,
       toggleHomeFilters() {
         setHomeFiltersOpen((current) => !current);
       },
@@ -192,7 +205,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return data.category.name;
       },
     }),
-    [homeFiltersOpen, state],
+    [homeFiltersOpen, refreshAppState, state],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
