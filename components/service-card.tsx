@@ -136,7 +136,6 @@ export function ServiceCard({ service }: { service: Service }) {
             className="flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500 transition hover:text-indigo-600"
           >
             <Share2 className="h-4 w-4" />
-            <span>{shareStatus || "Share"}</span>
           </button>
           <button
             type="button"
@@ -146,7 +145,6 @@ export function ServiceCard({ service }: { service: Service }) {
             }`}
           >
             <Flag className="h-4 w-4" />
-            <span>{reported ? "Dilaporkan" : "Laporkan"}</span>
           </button>
         </div>
       </div>
