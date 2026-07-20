@@ -249,8 +249,12 @@ export default function ServicePreviewPage() {
       <article className="m-4 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
         <div className="flex items-center justify-between gap-3 p-3">
           <Link href={`/providers/${getProviderSlug(service.provider)}`} className="flex min-w-0 items-center gap-3">
-            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full font-bold ${service.avatarTone}`}>
-              {service.avatar}
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full font-bold ${service.avatarUrl ? "" : service.avatarTone}`}>
+              {service.avatarUrl ? (
+                <NextImage src={service.avatarUrl} alt="" width={40} height={40} className="h-full w-full object-cover" unoptimized />
+              ) : (
+                service.avatar
+              )}
             </div>
             <div className="min-w-0">
               <h1 className="truncate text-sm font-semibold leading-tight">{service.title}</h1>
@@ -292,7 +296,7 @@ export default function ServicePreviewPage() {
 
           <ServiceInquiryButton service={service} />
 
-          <div className="grid grid-cols-3 items-center border-y border-gray-100 py-3">
+          <div className="flex items-center justify-between border-y border-gray-100 py-3">
             <button
               type="button"
               onClick={() => toggleRecommendation(service.id)}
@@ -303,23 +307,22 @@ export default function ServicePreviewPage() {
               <Heart className={`h-4 w-4 ${recommended ? "fill-emerald-500 text-emerald-500" : ""}`} />
               <span>{recommended ? "Direkomendasikan" : "Rekomendasikan"}</span>
             </button>
-            <button
-              type="button"
-              onClick={handleShareService}
-              className="flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500 transition hover:text-indigo-600"
-            >
-              <Share2 className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => reportService(service.id)}
-              className={`flex items-center justify-end gap-1.5 text-xs font-semibold transition ${
-                reported ? "text-rose-600" : "text-gray-400 hover:text-rose-600"
-              }`}
-            >
-              <Flag className="h-4 w-4" />
-              <span>{reported ? "Dilaporkan" : "Laporkan"}</span>
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={handleShareService}
+                className="text-gray-500 transition hover:text-indigo-600"
+              >
+                <Share2 className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => reportService(service.id)}
+                className={`transition ${reported ? "text-rose-600" : "text-gray-400 hover:text-rose-600"}`}
+              >
+                <Flag className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           {service.owner === "me" ? (

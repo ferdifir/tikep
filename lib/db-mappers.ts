@@ -17,6 +17,9 @@ type DbService = {
     name: string;
     avatar: string;
     avatarTone: string;
+    owner: {
+      photoUrl: string | null;
+    } | null;
   };
   category: {
     name: string;
@@ -43,6 +46,7 @@ export function mapService(service: DbService, currentUserId?: string): Service 
     title: service.title,
     provider: service.provider.name,
     avatar: service.provider.avatar,
+    avatarUrl: service.provider.owner?.photoUrl ?? undefined,
     avatarTone: service.provider.avatarTone,
     category: service.category.name,
     price: service.price,
@@ -73,6 +77,11 @@ export const serviceInclude = {
       ownerUserId: true,
       avatar: true,
       avatarTone: true,
+      owner: {
+        select: {
+          photoUrl: true,
+        },
+      },
     },
   },
   category: {

@@ -18,6 +18,7 @@ export type Service = {
   title: string;
   provider: string;
   avatar: string;
+  avatarUrl?: string;
   avatarTone: string;
   category: ServiceCategory;
   price: number;
