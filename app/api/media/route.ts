@@ -23,10 +23,16 @@ function toMediaResponse<
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const cursor = searchParams.get("cursor");
+  const limit = Math.min(Math.max(Number(searchParams.get("limit")) || 20, 1), 50);
+
   const media = await prisma.media.findMany({
     where: { serviceId: null, deletedAt: null },
-    orderBy: [{ createdAt: "desc" }, { sortOrder: "asc" }],
+    orderBy: [{ createdAt: "desc" }, { sortOrder: "asc" }, { id: "asc" }],
+    take: limit + 1,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     select: {
       id: true,
       serviceId: true,
@@ -54,7 +60,13 @@ export async function GET() {
     },
   });
 
-  return NextResponse.json({ media: media.map(toMediaResponse) });
+  const hasMore = media.length > limit;
+  if (hasMore) media.pop();
+
+  return NextResponse.json({
+    media: media.map(toMediaResponse),
+    nextCursor: hasMore ? media[media.length - 1].id : null,
+  });
 }
 
 export async function POST(request: Request) {
