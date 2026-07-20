@@ -3,10 +3,10 @@
 import { ImageIcon, Loader2, Play } from "lucide-react";
 import Link from "next/link";
 import NextImage from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { shouldBypassImageOptimization } from "@/lib/media-url";
 
-const STORAGE_KEY = "explore:state_v2";
+const STORAGE_KEY = "explore:state_v3";
 const PAGE_SIZE = 24;
 
 type ExploreMedia = {
@@ -32,18 +32,24 @@ export default function ExplorePage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [initialError, setInitialError] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
-  const observerInit = useRef(false);
+  const stateRef = useRef({ mediaItems, nextCursor, hasMore });
+  const loadingRef = useRef(false);
+  const restoredRef = useRef(false);
+  const scrollYRef = useRef(0);
+
+  stateRef.current = { mediaItems, nextCursor, hasMore };
 
   useEffect(() => {
     const saved = sessionStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         const state: SavedState = JSON.parse(saved);
+        restoredRef.current = true;
+        scrollYRef.current = state.scrollY;
         setMediaItems(state.media);
         setNextCursor(state.nextCursor);
         setHasMore(state.hasMore);
         setIsLoading(false);
-        requestAnimationFrame(() => window.scrollTo(0, state.scrollY));
         return;
       } catch {
         sessionStorage.removeItem(STORAGE_KEY);
@@ -53,14 +59,23 @@ export default function ExplorePage() {
   }, []);
 
   useEffect(() => {
+    if (!restoredRef.current) return;
+    const y = scrollYRef.current;
+    if (y < 1) return;
+    const id = setTimeout(() => window.scrollTo(0, y), 300);
+    return () => clearTimeout(id);
+  }, [mediaItems]);
+
+  useEffect(() => {
     return () => {
+      const s = stateRef.current;
       try {
         sessionStorage.setItem(
           STORAGE_KEY,
           JSON.stringify({
-            media: mediaItems,
-            nextCursor,
-            hasMore,
+            media: s.mediaItems,
+            nextCursor: s.nextCursor,
+            hasMore: s.hasMore,
             scrollY: window.scrollY,
           }),
         );
@@ -68,26 +83,19 @@ export default function ExplorePage() {
         /* quota exceeded */
       }
     };
-  }, [mediaItems, nextCursor, hasMore]);
+  }, []);
 
   useEffect(() => {
-    if (observerInit.current) return;
     if (!sentinelRef.current || !hasMore || isLoading || isLoadingMore) return;
-    observerInit.current = true;
 
     const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoadingMore && !isLoading) {
-          loadMore();
-        }
+      () => {
+        loadMoreRef.current?.();
       },
       { rootMargin: "300px" },
     );
     observer.observe(sentinelRef.current);
-    return () => {
-      observerInit.current = false;
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, [hasMore, isLoading, isLoadingMore]);
 
   async function fetchInitial() {
@@ -108,11 +116,16 @@ export default function ExplorePage() {
     }
   }
 
-  const loadMore = useCallback(async () => {
-    if (!nextCursor || isLoadingMore) return;
+  const loadMoreRef = useRef<(() => void) | null>(null);
+
+  loadMoreRef.current = async () => {
+    if (loadingRef.current) return;
+    const nc = stateRef.current.nextCursor;
+    if (!nc) return;
+    loadingRef.current = true;
     setIsLoadingMore(true);
     try {
-      const res = await fetch(`/api/media?cursor=${nextCursor}&limit=${PAGE_SIZE}`);
+      const res = await fetch(`/api/media?cursor=${nc}&limit=${PAGE_SIZE}`);
       if (!res.ok) throw new Error();
       const data = await res.json();
       setMediaItems((prev) => [...prev, ...data.media]);
@@ -121,9 +134,10 @@ export default function ExplorePage() {
     } catch {
       /* silent */
     } finally {
+      loadingRef.current = false;
       setIsLoadingMore(false);
     }
-  }, [nextCursor, isLoadingMore]);
+  };
 
   if (initialError && mediaItems.length === 0) {
     return (
@@ -155,7 +169,7 @@ export default function ExplorePage() {
         </section>
       ) : null}
 
-      <section className="columns-2 gap-3 [column-fill:_balance]">
+      <section className="columns-2 gap-3">
         {mediaItems.map((media, index) => {
           const isVideo = media.type === "VIDEO";
           const showVideoElement = isVideo && !media.thumbnailUrl;
